@@ -1,0 +1,245 @@
+High level overview here ...
+
+\section{Machine Model}
+\paragraph{Layer Interface MBoot}
+
+\begin{figure}
+\lstinputlisting [language = Caml] {src/mboot_rdata.v}
+\caption{The abstract states in the layer interface MBoot}
+\label{fig:ref:mboot_rdata}
+\end{figure}
+
+The interface MBoot is the lowest level layer interface in mCertiKOS, which is
+used to model the behaviors of hardware and the unverified boot loader.
+The abstract states of the MBoot interface is shown in Fig.~\ref{fig:ref:mboot_rdata}.
+
+On an x86-based systems, the BIOS reports the physical memory information
+through the \textsf{e820} memory map to allow the operating system to figure out
+which memory address ranges are usable and which are reserved for use by the BIOS.
+The \textsf{e820} table consists of a sequence of triples $(s, l, p)$, indicating
+the starting address $s$, the length $l$ of the region from the address $s$, and
+the permission $p$ (whether the region is reserved by BIOS or not). This triple
+is represented by the abstract type \textsf{MMInfo} in Fig.~\ref{fig:ref:mboot_rdata}.
+Since this data is initialized by the boot loader, the
+\textsf{MMInfo} in Fig.~\ref{fig:ref:mboot_rdata} also contains the default case
+\textsf{MMUndef} to indicate the case when it is not yet initialized by the boot loader.
+The whole \textsf{e820} table is represented by \textsf{MMTable} as a partial map
+from integer keys to \textsf{MMInfo}. Since it is a partial map, the number of
+\textsf{MMInfo} entries is defined separately as \textsf{MMSize} as shown in
+Fig.~\ref{fig:ref:mboot_rdata}.
+
+The MBoot interface also defines a list of primitives to operate on the abstract
+memory map. The primitives \textsf{get\_mms}, \textsf{get\_mml}, and \textsf{is\_usable}
+receives an integer $i$ as parameter and returns appropriate field in \textsf{MMTable}
+with the key $i$, while the primitive \textsf{get\_size} returns the number of
+entries in the table.
+
+There are also three abstract states in MBoot related to the hardware paging.
+The abstract state \textsf{CR3} models the hardware \textsf{CR3} register,
+which stores the root address of the current page table; the abstract state
+\textsf{ti} models the hardware \textsf{CR2} register that stores the fault address
+when page fault happens; while the abstract state \textsf{pg} represents
+the hardware \textsf{CR0} register indicating whether the paging is turned on or off.
+Appropriate primitives are also defined in MBoot to set these states.
+
+The special flags \textsf{ikern} and \textsf{ihost} represent whether the execution
+is currently in the kernel and host mode, respectively. They are set to \textsf{true}
+when the execution traps into the kernel or host, and are set to \textsf{false} when
+the execution returns back to user or the guest.
+
+\todo{How we handle initialization.}
+
+Another special flag \textsf{init} is introduced to indicate whether the kernel
+is initialized, and a
+special primitive \textsf{boot\_loader} is introduced in MBoot to model
+the behavior of the unverified boot loader. As most primitives, it requires that
+both \textsf{ikern} and \textsf{ihost} to be \textsf{true}, but \textsf{init}
+flag to be \textsf{false}. It then initializes \textsf{MMTable} and \textsf{MMSize}
+and then sets \textsf{init} to be \textsf{true}. 
+
+
+\section{Physical Memory Management}
+
+\paragraph{Layer Interface MContainer}
+...
+
+...
+
+\paragraph{Layer Interface MATIntro}
+...
+
+...
+
+\paragraph{Layer Interface MATInit}
+...
+
+...
+
+\paragraph{Layer Interface MATOp}
+...
+
+...
+
+\section{Virtual Memory Management}
+
+\paragraph{Layer Interface MPTIntro}
+...
+
+...
+
+\paragraph{Layer Interface MPTOp}
+...
+
+...
+
+\paragraph{Layer Interface MPTCommon}
+...
+
+...
+
+\paragraph{Layer Interface MPTKern}
+...
+
+...
+
+\paragraph{Layer Interface MPTInit}
+...
+
+...
+
+\paragraph{Layer Interface MPTNew}
+...
+
+...
+
+\section{Shared-Memory IPC}
+
+\paragraph{Layer Interface MShareIntro}
+...
+
+...
+
+\paragraph{Layer Interface MShareOp}
+...
+
+...
+
+\paragraph{Layer Interface MShare}
+...
+
+...
+
+\section{Thread Management}
+
+\paragraph{Layer Interface PKContext}
+...
+
+...
+
+\paragraph{Layer Interface PKContextNew}
+...
+
+...
+
+\paragraph{Layer Interface PQueueIntro}
+...
+
+...
+
+\paragraph{Layer Interface PQueueInit}
+...
+
+...
+
+\paragraph{Layer Interface PThreadSched}
+...
+
+...
+
+\paragraph{Layer Interface PThread}
+...
+
+...
+
+\section{Single-Copy Asynchronous IPC}
+
+\paragraph{Layer Interface PIPCIntro}
+...
+
+...
+
+\paragraph{Layer Interface PIPC}
+...
+
+...
+
+\section{Process Management}
+
+\paragraph{Layer Interface PUCtxtIntro}
+...
+
+...
+
+\paragraph{Layer Interface PProc}
+...
+
+...
+
+\section{Intel Virtualization Support}
+
+\paragraph{Layer Interface VEPTIntro}
+...
+
+...
+
+\paragraph{Layer Interface VEPTOp}
+...
+
+...
+
+\paragraph{Layer Interface VEPTInit}
+...
+
+...
+
+\paragraph{Layer Interface VVMCSIntro}
+...
+
+...
+
+\paragraph{Layer Interface VVMCSInit}
+...
+
+...
+
+\paragraph{Layer Interface VVMXIntro}
+...
+
+...
+
+\paragraph{Layer Interface VVMXInit}
+...
+
+...
+
+\section{Trap Handling}
+
+\paragraph{Layer Interface TTrapArg}
+...
+
+...
+
+\paragraph{Layer Interface TTrap}
+...
+
+...
+
+\paragraph{Layer Interface TDispatch}
+...
+
+...
+
+\paragraph{Layer Interface TSyscall}
+...
+
+...

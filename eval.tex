@@ -1,0 +1,118 @@
+\section{Evaluation and Lessons Learned}
+\label{sec:lessons}
+
+\paragraph{What We Have Proved}
+The final theorem we proved for our kernel is the contextual refinement
+relation between
+our lowest level hardware machine model $\texttt{MBoot}$ (which defines
+the x86 instructions, the serial device, and the I/O APIC and Local APIC
+devices, etc.), and the top level machine $\texttt{mCertiKOS}$ (which
+defines the abstract system call interface).  Let
+$\sem{\rm{}x86}{\cdot}$ and $\sem{\rm{}mCertiKOS}{\cdot}$ denote the
+whole-machine semantics of each machine model, and $K$ denote the
+(assembly) source code of mCertiKOS, then the theorem is formalized
+as:
+
+\begin{theorem}
+ $\forall P,\;\sem{\rm{}x86}{K\join{}P}\Refrel{}\sem{\rm{}mCertiKOS}{P}$.
+\end{theorem}
+
+The theorem states that for any kernel/user/guest/host
+context program $P$, there is a simulation between program $P$ running
+on top of the top level abstract machine $\texttt{mCertiKOS}$, and the
+program $P$ linked with the mCertiKOS source code $K$, running
+atop the bottom-most machine $\texttt{x86}$.
+
+The abstraction layers also define the data invariants that are proved
+to hold at any moment of the whole program execution. Some example
+invariants are: the console's circular buffer is always well\-formed,
+and the interrupt controller states are always consistent, {\it etc}.
+
+Besides this, our framework automatically derives that all the system
+calls always run safely and terminate; there are no code injection
+attacks, no buffer overflows, no null pointer access, no integer
+overflows, {\it etc}.
+
+\paragraph{Isolation}
+We take the existing implementation of the CertiKOS infrastructure
+\cite{dscal15}, and extend it with our device and interrupt models.
+On top of the extended machine model, we have verified a subset of the
+device drivers in mCertiKOS with 10 abstraction layers. Some layers
+are introduced to verify concrete driver implementation, while others
+are introduced purely for logical abstraction (e.g., from a circular
+console buffer implementation in memory to an abstract list, from the
+hardware interrupt model to the abstract interrupt model enforcing
+isolation, {\it etc}).  These abstraction layers are inserted into the
+existing layers of mCertiKOS as a certified plugin.  Thanks to our
+isolation policy, this does not invalidate most of the existing proofs
+of mCertiKOS, and the integration only required minimal effort, despite
+the existing mCertiKOS proofs being unaware of interrupts.
+
+
+\paragraph{Execution Model and Completeness}
+The majority of our device drivers are specified and verified at C
+level, then compiled by our CompCertX compiler. 
+The entire kernel (both C and assembly)
+source code, together with the source code for the verified compiler,
+are extracted into an OCaml program through Coq's extraction
+mechanism. When this program gets executed, it compiles the extracted
+C source code into the assembly, and merges it with the existing
+assembly kernel source code, to produce a piece of assembly code
+corresponding to our verified kernel.  Thus, our deliverable comes
+with a piece of assembly code for the entire verified kernel, a high
+level deep specification of various kernel behaviors, and a machine
+checkable proof object stating the assembly code running on the actual
+hardware satisfies the high level specification.
+
+The verified assembly code is then linked with the rest of kernel code
+(the boot loader and remaining unverified drivers) to produce the
+actual binary image of the OS. The resulting kernel is practical: it
+runs on stock x86 hardware and the hypervisor version with the Intel vt-x
+support can successfully boot a unmodified version of Linux as guest.
+
+\paragraph{Verification Effort} 
+Using our general device interface, we have modeled a serial device
+and two interrupt controller devices. On top of these device models,
+we have verified the related drivers and interrupt handlers.  The
+entire verification effort consists of roughly 20k lines of Coq code
+added to the existing mCertiKOS verification code base.  Regarding the
+specification, there are 510 lines of code used to specify the machine
+model including the device hardware, and 126 lines of code for
+specification of the additional system call interfaces. There are
+additional 9,829 lines of Coq code that were used to define auxiliary
+definitions, lemmas, theorems, invariants, {\it{}etc}. Note that these
+9,829 lines of definitions are outside our TCB, thus does not need
+to be trusted.  In terms of proof size, there are 3,671 lines of Coq
+code for the layer refinement proofs, 3,589 lines for code
+verification, 1,802 lines for proving invariants, and 307 lines for
+linking different modules together.
+
+The entire verification effort took roughly 7 person months, the
+majority of which went into the design and development of the
+framework itself, including the extended machine model, general device
+framework, the interrupt refinement, and the tactic libraries for
+automating most of the non-intellectual parts of verification task.
+We anticipate the cost of verification for future drivers would be
+dramatically reduced.
+
+\paragraph{Bugs Found}
+An extended version of the mCertiKOS kernel has been deployed in a
+practical system that is used in the context of a large DARPA-funded
+research project \cite{dscal15}.  Yet, through the verification of the
+console driver, we found a critical bug which may lead to the loss of
+many characters received from the serial device. The bug was in the
+implementation of the circular console buffer, where, in some rare
+cases, the read and write positions to the buffer array overlap,
+causing the entire contents in the buffer to be lost. The bug was
+caught when we tried to establish the contextual refinement between
+the concrete implementation of the circular buffer and its abstract
+list representation.
+
+Another bug was found in the code for initializing the serial device,
+where the interrupt was not configured correctly by accidentally
+setting the Interrupt Enable Register (IER) before the DLAB was unset.
+This was caught when we tried to prove the initialization code against
+its specification.
+
+
+

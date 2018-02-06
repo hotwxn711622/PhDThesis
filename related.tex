@@ -1,0 +1,205 @@
+\label{chapt:related}
+
+\section{Hoare-Style Program Verification}
+
+\section{Program Verification with Low Level Solvers}
+
+\section{OS Kernel Verification}
+
+\section{Support of Fine-Grained Concurrency}
+
+\section{Verification of Device Drivers and Interrupts}
+
+Gu {\em et al} \cite{dscal15} pioneered the compositional
+proof machinery that
+builds certified OS kernels using deep specifications and certified
+abstraction layers. We built our certified interruptible OS kernel and
+device drivers using the same methodology. Our new compositional proof
+framework, however, adds two novelties.
+%%%%%%%%%%%%%%%%
+First, we show how to handle
+device objects, which are different from regular mCertiKOS kernel
+objects. The states in these new device objects can be updated either
+by the kernel (via device methods) or by an external environment,
+whereas regular mCertiKOS objects can only be mutated synchronously by
+the CPU; device objects can also be asynchronously mutated by the
+environment; we introduce a new abstraction of per-device event logs
+to handle this asynchronicity.
+%%%%%%%%%%%%%%%%
+Second, we support formal reasoning about kernel code and device
+drivers running on multiple logical CPUs (see
+Fig.~\ref{fig:layer_new}) while under Gu {\em et al} \cite{dscal15}, all verified
+code at each layer must run on a single CPU (see
+Fig.~\ref{fig:layer_pre}); we treat the driver stack for each device
+as if it were running on the logical CPU dedicated to that device.
+
+Klein {\em et al} \cite{klein2009sel4} were the first to verify the correctness and
+security properties of a high-performance L4-family microkernel in a
+modern mechanized proof assistant~\cite{Paulson:Isabelle}.  To make
+verification easier, they introduced an intermediate executable
+specification to hide C specifics. Gu {\em et al} \cite{dscal15} built their
+certified mCertiKOS kernel (in Coq) by decomposing it into many
+abstraction layers; such fine-grained layer decomposition led to
+significantly lower proof and development effort and also better
+extensibility. Both kernels, however, lack a realistic
+interrupt model, so reasoning about interruptible code is not
+supported. The device drivers are not verified in either kernel.
+
+Hawblitzel~{\em et al}~\cite{ironclad14} has recently developed a set
+of new tools based on the Dafny verifier~\cite{dafny10} and Z3 SMT
+solver~\cite{moura08}, and applied them to build their Ironclad system
+which includes a verified kernel (based on Verve~\cite{hawblitzel10}),
+verified drivers, verified system and crypto libraries, and several
+applications.  This is another impressive effort that advances the
+frontier of system software verification. However, the abstract device
+model in Ironclad is too high level to model many hardware details.
+
+The Verisoft team~\cite{verisoft07} has done a large body of work
+aiming to verify an OS kernel with device drivers in a proof assistant
+\cite{Alkassar:OSVE09,Alkassar:VSTTE08-225,Alkassar:VSTTE2010-71}.
+Alkassar and Hillebrand \cite{Alkassar:VSTTE08-225} reported
+their work on verification of device
+driver, which investigated the relationship between external events, device
+and processor execution, and proved several non-trivial lemmas that can be
+viewed as a foundation of this work. In their work, the execution of CPU and
+devices are modeled as a combined transition system with an oracle to select
+the next one to make a step. The transition of each step is categorised into
+three cases: (1) processor-device transition, (2) local processor transition,
+and (3) external device transition. The paper shows that: a. the steps of
+local processor and external device transition can be swapped because they do
+not interfere with each other; b. the steps of external device transition by
+other devices can be reordered to the end of the execution because they do not
+change the state of the current device with the assumption that all the
+drivers only access to their own devices. Therefore, the device transitions
+triggered by external events can be moved from the code of high-level language
+which do not access the devices into the driver code which is written in
+assembly. In addition, the specification of the driver code which involves
+processor and device steps can be called atomically. They further proved the
+correctness of a simple ATAPI disk driver.
+In our paper, the ``logical'' CPUs are systematically built in an isolated way,
+so that the assumption that drivers only access to their own devices are
+guaranteed by construction. Furthermore, viewing drivers as more abstract devices
+enables us to add device accessing primitives into the device “ISA”, and
+encapsulate the transitions of devices layer by layer into richer yet atomic
+specifications. Last, interrupt is allowed when the driver is running. We use
+\textsf{intr\_disable} / \textsf{intr\_enable} to mark the specific regions
+as critical sections,
+so that the interrupt being disabled is not an assumption of our driver code.
+
+Based on the ideas of concurrent separation logic (CSL), Alkassar {\em el at}
+\cite{Alkassar:IPC}
+presented a modular and polymorphic method to specify IPC algorithms in VCC,
+which relies on transferring ownership of the ghost objects between IPC
+entities and attached invariants to guarantee the correctness of the
+algorithm. They extended their specification pattern to specify and verify an
+inter-processor interrupt (IPI) protocol in multiprocessor systems, in which
+IPC mailboxes are used to model the APIC bus between processors, and the IPI
+sending and receiving (NMI interrupt handler) code are modeled as while-
+loops. They focused on the interaction between the IPI participants locally,
+but not between the triggered interrupt handler and the previous execution on
+its CPU. In our device driver verification, we also address the interleavings
+between normal execution and interrupt handler on the same processor.
+In addition, the verification in \cite{Alkassar:IPC} does not
+prove strong contextual refinement property as in our paper.
+
+The idea of shuffling the execution of interrupt handlers to a certain point
+so that the verification can be done at higher level languages is discussed in
+Pentchev's PhD thesis \cite{Pentchev:2016}. Their concurrent machine $MIPS_{P}$
+was modeled as an
+automaton with a sequence of step-indicators as external inputs. At each step,
+the transition function makes a case distinction based on an external input
+pair (component i.e. core / ipi / guest / vmexit, processor) and let one or
+multiple components to make a step. In order to propagate properties from the C
+Intermediate Language (C-IL) program to the $MIPS_{P}$ execution, they applied
+order reduction to prove the sequential compiler consistency (a simulation
+relation to achieve that the execution of interrupt handlers only happens
+between the C statements) by having interleaving occur at consistent state,
+namely interleaving points. In contrast to our paper, because the IPIs are
+non-maskable, the interrupt handler has to be carefully designed to avoid the
+race condition, and they only provided the semantics of concurrent C-IL
+encapsulated with IPI to specify the interrupt handler. In our paper, we push
+it further to the boundary of critical sections. We do not consider the
+interleaving between the kernel and device execution at such early stage. We
+view them as separated logical machine and design their own transition functions.
+In addition, the states among logical CPUs are isolated and are not visible
+to each other. The consistency of the states between a driver and its
+interrupt handler is guaranteed by examining the same local log to construct
+all shared states. We enforce a principle of a common programming pattern that
+drivers have to disable the interrupt before entering into the critical section,
+so that the ``interleaving points'' in our paper is only the \textsf{intr\_disable} and
+\textsf{intr\_enable}. Thus, above a certain layer, the code verification can not only
+be done at Clight level, but also be free of considering the interleaving between
+the code and interrupt handlers, because they are all encapsulated in the primitive of
+those functions accessing shared states.
+
+Feng {\em et al} \cite{feng08:aim,feng09:jar} developed a formal Hoare-logic-like
+framework for certifying low-level system programs involving both
+hardware interrupts and preemptive threads.  Using ideas from
+concurrent separation logic~\cite{ohearn:concur04}, they showed how to
+use ownership-transfer semantics to model enabling and disabling
+interrupts and reason about the interaction among interrupt handlers,
+context switching, and synchronization libraries.  They successfully
+certified a preemptive thread implementation (as libraries) and a set
+of common synchronization primitives in the Coq proof assistant.
+Their work, however, did not model any hardware device or interrupt
+controller, and their interrupt model is much simpler than ours. They
+also only proved the partial correctness property (for their certified
+library functions), not the strong contextual refinement property
+which we proved for our kernel. Of course, since our current certified
+kernel does not support preemptive concurrency, we believe there are
+good opportunities for combining their techniques (for reasoning about
+preemptive concurrency) with our refinement-based approach.
+
+Ryzhyk {\em et al} \cite{Ryzhyk_09,Ryzhyk14} have done much work on
+the synthesis of device drivers from the specifications.
+In their approach, both the device and the interface of the corresponding
+driver are modeled as state machines, which communicate via messages. 
+The generated driver code requires some unverified run-time
+support. Furthermore, the correctness of the drivers is limited to the
+synthesized C programs, not the compiled assembly code running on the actual
+hardware. 
+
+In the work of Duan and Regehr \cite{Duan2010}, a UART driver in the
+ARM architecture with interrupt is verified. They have created an
+abstract device model which gets plugged into the instruction set of
+the ARM6 architecture.  In their model, the device state is mixed into
+the machine state. Thus, they have to carefully consider the
+interleavings between the execution of the device and the CPU. Albeit
+a realistic UART model, the driver only consists of 20 lines of the
+assembly code. The framework is later ported to the Cambridge model of
+the ARMv7 architecture \cite{duan2013}.  Schwarz {\em et al}
+\cite{Oliver2014} proposed a device model where all the devices are
+executed nondeterministically in parallel with a single core
+processor. Based on the model, they have proved several
+noninterference properties among the processor and devices which
+potentially use DMA or interrupts.  Monniaux {\em et al}
+\cite{Monniaux_EMSOFT07} have verified a driver with a USB OHCI
+controller model written in C with a static analyzer.  They have
+showed the verified driver exhibits no undefined behavior.
+
+Andronick {\em et al} \cite{Andronick2015, Andronick2016} presented
+a scalable framework for formally reasoning an
+embedded, real-time operation system: eChronos. In eChronos, OS functions are
+treated as interrupts, which are wrapped with supervisor calls (software triggered
+interrupts) even in the same address space. An extended Owicki-Gries approach
+is used to model and verify the system as all the concurrency components,
+such as tasks, interrupt handlers, supervisor calls, and asynchronous hardware
+behaviors, which are composed in parallel. Furthermore, in order to show the
+controlled interleaving allowed by the hardware, a ghost variable ``AT'' is
+introduced to represent the current active task. The correctness of eChronos
+is proven by properties (expressed by invariants) held through all
+executions and at every reachable step.  Because of the non-determinism
+introduced by parallel composition, it is challenging to write the
+specification in an atomic way so that refinement can be applied to prove the
+functional correctness.
+
+There are many lines of work in verifying device drivers based on
+model checking. Amani {\em et al} \cite{Amani12} proposed an approach
+to automatically verify the protocols between drivers and the
+operating system.  Thomas Witkowski \cite{witkowski2007} and Alexey
+Khoroshilov \cite{Khoroshilov2010} have verified specific protocols of
+some Linux drivers using the model checker \textsc{SatAbs} and
+\textsc{DDVerify}.  Kim {\em et al} \cite{Kim2008} have verified a
+driver for a flash memory in NuSMV, Spin, and CBMC.  Ball {\em et al}
+\cite{slam2} have developed the static analysis tool SLAM, which is
+included in the Microsoft Windows Driver Developer Kit.

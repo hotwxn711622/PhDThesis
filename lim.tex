@@ -1,0 +1,138 @@
+
+\section{Trusted Computing Base}
+Our verified kernel assumes correctness of the hardware.  In our
+device model, we enforce a set of invariants on the list of external
+events, which specifies correct hardware behaviors, e.g., all the 8
+bit characters are 8 bits, serial port eventually transmits its
+contents, {\it etc}. Every function that tries to write to the
+serial device first busy-waits reading the device's transmission
+buffer status until it becomes empty. We rely on the above assumption
+to prove that the loop eventually terminates and when it does
+terminate, the transmission buffer is empty so we can write to the
+device again.  In the future, we plan to extend our device drivers to
+handle the hardware errors, e.g., when the serial device does not
+acknowledge the previous output was successful in the time period
+specified in the hardware documentation.  In this case, we can add
+states to the device state machine to represent those erroneous cases,
+and add appropriate error handling code. The process is the same as a
+non-faulty device. For example, when the serial port does not transmit
+its contents in a certain amount of time, we can reset the serial port
+and try again.
+
+Furthermore, as with any verified system, the specification of
+hardware devices and the top level system call primitives have to be
+trusted.  For the hardware specification, we only model the set of
+features utilized by the kernel, instead of modeling the entire
+hardware manual.  Our system calls are specified at the top
+abstraction layer, where all implementation details are hidden.  These
+lead to specifications of a fairly small size,
+limiting the possible room for errors, and easing the review process.
+
+Sometimes, the compiler may unsoundly optimize away some memory
+accesses to the memory mapped registers, e.g., a dead read of a
+memory mapped device register. In this case, we can use the
+CompCert built-in calls like $\texttt{volatile\_load}$, which are
+not supposed to be optimized away by CompCert. On the other hand,
+those operations can also be directly implemented in assembly in
+our framework.
+
+Outside our verified kernels, the following modules are not verified:
+the bootloader, the preinit procedure,
+the ELF loader used by user process creation, and functions such as
+memcpy which currently cannot be verified because of a limitation
+arising from the CompCert memory model. In addition, the CompCert assembler for
+converting LAsm into machine code remains unverified.
+
+\section{Verification of Other Device Drivers}
+Some device drivers (i.e., those with underlined names in
+Fig.~\ref{fig:overview:device}) in mCertiKOS still remain unverified.
+With the new compositional framework and automation libraries we have
+developed, we anticipate that the rest of the drivers can be verified
+with a reasonable amount of proof engineering effort.
+
+Among those drivers shown in Fig.~\ref{fig:overview:device}, the
+text-mode VGA driver can be verified easily since it is
+not much more complex than the serial driver. The timer and TSC drivers
+can also be verified, but mCertiKOS's assembly machine must first be
+parametrized with a good cost model for x86 instructions.
+
+The disk driver (including the PCI and AHCI drivers) is the largest
+driver in our kernel. The mCertiKOS kernel communicates with the hard
+disk through the AHCI controllers using memory mapped registers
+(mCertiKOS also communicates with the APIC using memory mapped
+registers through the verified drivers). We believe that our device
+model is general enough to model required features for these devices
+used by the disk driver. We have already started applying our approach
+to verify the mCertiKOS disk driver which will also serve as a basis
+for building a certified file system.
+
+\section{Timed Behaviors}
+
+Our framework does not support reasoning of real-time behaviors.
+The timer hardware can be modeled in our framework, but we lack a precise
+metric for the duration of each x86 assembly instruction.
+A separate line of work toward this goal is undergoing, and is out of scope
+for this paper.
+
+\section{Fine-Grained Concurrency in Device Drivers}
+Our certified kernel with verified device driver assumes a runtime environment consisting
+of a single processor, and user processes do not preempt each other.
+Therefore, our work so far does not support preemptive nor multicore
+concurrency.  With general concurrency, different user/kernel threads
+may share memory and use a wide variety of synchronization
+mechanisms that must also be verified.  The techniques presented in
+Chapter \ref{chapter:driver} does not provide such support (since the logical CPUs for
+devices and the main kernel/user CPU do not share any state). 
+Thus, when the work presented in Chapter \ref{chapter:driver} was merged
+into the the concurrent kernel presented in Chapter \ref{chapter:concurrent},
+we had to bind the driver to a particular CPU in order to avoid handling
+the shared-memory concurrency and preemption.
+
+On the other hand, device drivers often do need to modify kernel memory, as in Linux
+bottom halves (implemented as low-priority threads) or deferred
+procedure calls in Windows. We believe that our device framework
+can be faithfully merged into the event-based model introduced in
+Chapter \ref{chapter:concurrent}, by treating the external world as additional
+part of the thread's environmental context, and query for the list of external
+events. 
+With this kind of concurrency support, each logical CPU could have
+its own (logical) scheduler,
+(logical) memory, and collection of kernel or user threads that may share memory.
+With support of these
+``concurrency-aware'' logical CPUs, we believe that our technique can
+be extended to support low-priority kernel threads dedicated to serve
+Linux bottom-halves. The idea is to treat these device-serving kernel
+threads (and memory) as part of the logical CPU dedicated for each
+device. Since we are already treating device driver code as if it runs
+on its ``device'' CPU, it is quite natural to place those
+device-serving kernel threads on the logical (device) CPUs as well.
+
+\section{Relaxed Memory Model}
+Our concurrent abstract machines assume strong sequential consistency (SC)
+for atomic primitives. 
+Previous work~\cite{SewellSONM10} demonstrated that race-free programs on a TSO model do indeed behave as if executing on a
+sequentially consistent machine. Since safe programs on our push/pull model is race-free, we believe extending our work from SC to TSO is promising. In our future work, we will formalize and integrate this proof in Coq.
+
+\section{Better Automation Support for Concurrent Program Verification}
+Our automation support for the sequential program is mature fairly mature
+in the sense that majority of proofs are achieved nearly automatically
+when they are simple enough. In addition, there are also many
+common program/proof patterns built into the automation library that
+it can discharge these goals automatically. 
+
+When it comes to the new framework supporting concurrent programs, presented
+in Chapter \ref{chapter:concurrent}, there are still many parts of the proofs
+that are done manually, especially the new components dealing with the logs
+and events. Based on our experience, we believe that we can extract
+many common patterns in the concurrent programs and provide much better
+automation support for these programs.
+
+\section{Slow Coq Compilation}
+Our layered methodology enables us the modular development of the proofs, by proving
+each module at the right abstraction level with minimum dependencies, avoiding unnecessary
+tedious dependency proofs. But still, as the code base gets larger, the slowdown
+in the compilation time starts to affect efficiency of the development more and more.
+For example, in rare cases, if we change the file that contains global definitions used by
+most of other files, the compilation take very long to get to the file we are working on.
+We are actively considering porting our framework to the newest version of Coq which support
+asynchronous edition and compilation.

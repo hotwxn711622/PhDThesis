@@ -1,0 +1,506 @@
+Given that majority of the system software are developed in C (ClightX
+in our case), we need a good framework-level automation support to
+verify that ClightX modules meet their (low level) specifications. 
+
+In the literature, scalable verification support for C programs falls into following two
+categories. One is to transform the proof targets into some lower
+level forms and seek help from automation engines like SMT solvers
+\cite{boogie05,dafny10}.
+The benefits of this approach is that we can discharge the proof goals
+nearly automatically without human intervention and this process can be done
+very efficiently. On the other hand, this process cannot produce the proof
+objects that can be machine checked, thus we would need to trust the implementation
+of many of the components in the proof engine, e.g., the underlying SMT solvers.
+It is also hard for human to provide some smart hints in the middle when the
+fully automated approach fails or times out.
+
+Another method is to implement some program logics
+(Hoare logic, separation logic, {\it etc}) on top of the semantic model where the
+set of syntactic logic rules are proved to be sound with respect to the underlying
+program semantics \cite{appel11:vst}. There, a piece of C code
+is associated with a precondition $P$ that is expected to hold at the entry of
+the code segment, and a post condition $Q$ that should be proved to hold when
+the flow exits the code segment. Majority of existing verified systems only prove
+partial correctness, i.e., they prove that if $P$ holds at the entry, then either
+the program gets into an infinite loop, or the program terminates and the exit states
+satisfy the post condition $Q$. Thus, the proof here is termination insensitive.
+
+Our goal is to develop a framework level support on semi-automatically
+producing machine checkable proofs for the correctness of ClightX source programs
+against their low level specifications.
+We would like to take the termination seriously as it is critical on artifacts
+we are interested in, e.g., an operating system kernel.
+More importantly, we try to make
+the linking of different semantic components and modules to be uniform, and more importantly,
+explicit, to remove any potential semantic gaps among different modules.
+We use simulation as the uniform formalism. For example, we prove that
+the C program is simulation of the low level specification (C code verification), 
+the assembly program is simulation of C (compiler correctness), {\it etc}.
+The transitivity of simulation allows us to naturally compose all the
+proofs together formally, and explicitly in Coq.
+With the Hoare logic approach, it is unclear how we can formally link the compiler
+correctness theorem with the Hoare triple to derive a combined theorem about
+the compiled assembly program, and it is also unclear how you can further link
+that correctness theorem with another program written and proved directly
+at the assembly level.
+
+Fig.~\ref{fig:cons_buf_code_lemma} shows our main lemma for correctness of
+the circular console buffer accessor functions against their low level specifications
+shown in Fig.~\ref{fig:cons_buf_low_spec}. As shown in Fig.~\ref{fig:cons_buf_code_lemma},
+we prove the {\it downward simulation} from the specification to implementation, i.e.,
+we prove that the code is simulation of its low level specification.
+While this is very different form traditional Hoare logic approach, it links
+nicely with the downward simulation we prove for the {\it refinement proof}
+and we turn the entire downward simulation in the end into a final upward simulation
+for the contextual refinement. Another distinctness of our approach is that
+we handle memory isolation through the data abstraction by proving contextual
+refinement between the new overlay abstract states and concrete in-memory
+data at underlay. Thus, in most cases, C program verification only reasons
+about the data in the form of abstract states, thus do not need any heavy
+machinery, e.g., separation logic, to handle the isolation.
+
+\begin{figure}
+\lstinputlisting [language = Coq] {src/cons_buf_code_lemma.v}
+\caption{Lemmas for the correctness of console buffer implementation}
+\label{fig:cons_buf_code_lemma}
+\end{figure}
+
+\section{Design Principle}
+\label{sec:principle}
+
+In our framework,
+code verification is achieved semi-automatically through Coq tactic libraries
+implemented in the Coq's tactical language \emph{Ltac}. 
+The automation engine is designed and implemented with special emphasis on
+the scalability and usability, with the intention to use it in large scale
+low level system verification like operating system kernel.
+While as any other automation support, the main goal is to reduce manual proof as much as
+possible and seek for human interaction only when it is necessary,
+the system is designed with the following desired properties in mind.
+
+\paragraph{Easy to pick up}
+
+It is never practical to achieve verification of large scale system software
+with one-man effort. One of the main goal is to make it simple and intuitive
+to use and maintain the developed tactic libraries. 
+The automation library implementation consists of many small library modules, which
+makes it more easy and intuitive to debug and extend the library by someone
+other than the initial developer. On the other hand, I have developed a top level
+all-purpose tactic called {\it cauto} which repeatedly performs the top level
+pattern matches and calls into appropriate lower level libraries.
+Thus, in many cases, users can simply invoke this tactic without worrying about
+what specific tactics should be used for the particular subgoal that pops up.
+
+The tactics can fail, mostly due to careless mistakes in specification or implementation,
+e.g., type mismatch, wrong variables due to typos, {\it etc}. In order to figure
+out the causes and fix them, one may need to debug the tactics. Coq is known to
+have poor support for debugging Ltac. The default Ltac debugging mode does not
+work well in practice. Without any additional debugging support, the known best
+practice is to copy and paste the tactic source code into the proof script
+and debug part by part to figure out which part caused the failure.
+We still have to do that in our proof in some cases, but we also identified
+some common mistakes and failing tactics and developed a ``test'' version of
+the tactics that fail gracefully when
+something goes wrong. Thus, in many cases, when we see that the main tactic
+fails, we invoke the test version which does not fail and leave some intermediate
+state that prevented the main tactic to proceed, which can be used to determine
+the source of errors much easily.
+
+The automation library is exercised extensively by many (undergraduate and graduate)
+students and (postdoctoral) researchers in our group to prove thousands of
+lines of C code in different versions of our OS kernels. Some of them have few or no
+experience in the Coq proof
+assistant, yet they picked up the library and started to perform code verification
+reasonably quickly, after they obtained some basic knowledge of Coq.
+
+\paragraph{Sound}
+Coq is sound, given its underlying core is sound, which is reviewed and exercised
+by many experts and members in and outside the community. On the other hand,
+that does not prevent our Ltac proof scripts to enter a situation that the remaining
+subgoals are not valid. One major source of such situation could happen when we
+deal with {\it existential variables}. 
+
+Existential variables are placeholders for
+variables that are not instantiated to concrete values yet, and are
+denoted by a numbered question mark, e.g., $?77$. Variables with different numbers
+denote different existential variables, but they can later be instantiated to
+the same value. They can be introduced explicitly by the proof script with
+tactics like \textsf{esplit}. For example, when we have a proof goal of
+$\exists~x,~x=7$, we can first run \textsf{esplit}, which replaces the existentially
+quantified variable $x$ with an existential variable (e.g., $?8$) and turns the
+goal into $?8=7$. The existential variables can also be (and are mostly) introduced
+automatically for each of intermediate variable that Coq cannot immediately
+deduce its value while running tactics like \textsf{eapply}.
+For example, if we have a theorem \textsf{trans\_f} of the form
+$\forall~x~y~z,~f(x,y)~\rightarrow~f(y,z)$ and our current subgoal is $f(1,2)$,
+if we run ``\textsf{eapply} \textsf{trans\_f}'', Coq would not be able to
+automatically deduce the value of $x$, and it would turn the goal into
+$f(?5, 1)$.\footnote{The number in the existential variable is assigned by
+Coq and does not have any intended meaning.}
+
+Existential variables can be instantiated explicitly by the \textsf{instantiate}
+tactic. In the case of $?8=7$ above, we can first run
+``$\textsf{instantiate}~(1:=7)$ to instantiate the right-most appearance of
+existential variable (in our case, the only variable $?8$) to $7$ and turn
+the goal into $7=7$, which can be solved easily by the \textsf{reflexivity} tactic.
+On the other hand, Coq itself also tries to fill the existential variable
+whenever it finds a suitable candidate. In the above example, we can directly
+run \textsf{reflexivity} on $?8=7$ which can automatically instantiate
+$?8$ to $7$ and solves the goal.
+
+The existential variables give us a convenient way to not to spell out many
+temporary states that we do not care about and let the automation engine
+automatically deduce the values during the proof. Without them, we would need
+to explicitly come up with all these intermediate values and provide it when
+we apply various theorems or lemmas. In addition to the intermediate temporaries
+get generated during the proof, we can also omit some states that is not
+relevant to what we prove. For example, in Fig.~\ref{fig:cons_buf_code_lemma},
+the final temporary environment after the code execution ($le'$) is existentially
+quantified, as it is about to be thrown away and not relevant to our specification
+that is stated in terms of memory and abstract states.
+
+On the other hand, existential variables can become the main evil that hinders
+more aggressive optimization. In general, when our automation tactic stops,
+we either want the goal to be solved completely, or the leftover subgoals
+should be provable semi-automatically with some human interactions.
+If the tactic call results in inconsistent states that are not provable,
+then the only choice we have is to debug the tactics to prevent that from
+happening. This is particularly not suitable in large-scale system verification,
+where the same automation libraries are used by many different components
+(or even different systems) developed by different members of the team.
+Instead, we strictly enforce that the remaining goals should always be valid
+when the tactic call terminates. This means that we do not aim to achieve
+an aggressive push-button or single-attempt verification where a single tactic
+call tries to solve the entire goal. Instead, our tactic stops whenever
+there is any potential for making wrong decisions. One typical example would
+be running simple tactics like \textsf{reflexivity} on a goal with expressions
+containing existential variables. For example, when we have two subgoals
+$?11\le5$ and $?11=4$, if we apply \textsf{reflexivity} to $?11\le5$ first,
+Coq would instantiate $?11$ with $5$ and discharges the first goal, and
+we end up with a goal $5=4$ which is not arithmetically valid. Instead,
+our tactic would stop on the first goal since there are more than one choices
+of $?11$ that is less than $5$. On the other hand, it does not stop on the second
+goal because there is only one possible instantiation that makes it equal to $4$.
+Thus, it would still make process on the second goal, which allows our repeating
+engine to continue and automatically solve the leftover goal ($4\le5$).
+Unfortunately, this is not always the case. In this chapter, I present
+more examples in detail and discuss potential drawbacks and ways to overcome
+them.
+
+
+\paragraph{Reasonably efficient}
+
+We cannot expect the performance of our Ltac scripts to be comparable
+to the SMT solvers. But we would still expect them to be
+reasonably efficient so that it does not hinder its usability in practice.
+If every tactic call to \textsf{cauto} takes minutes to respond on average,
+it would not be practical to use it in large scale verification.
+It is possible that we write an extremely lengthy function with the
+corresponding proof script to take hours to compile. But here we are
+concerned about a function at a reasonably small size, since majority
+of functions in an even complex system software should be reasonably small,
+otherwise, it was not implemented following a modular design.
+Among those small size functions, some of them are very short (less than
+ten lines of code), where we should expect our automation tactic to
+finish within a couple of seconds. For the ones with longer size,
+we probably would expect it to take no longer than a minute.
+
+Even though we do not enforce any time requirement to our tactics,
+we have made some design decisions to make the tactics reasonably more
+efficient.
+
+First, we try to organize the tactics info many different modules.
+Recall that the pattern match in Ltac scans and tries each case
+linearly, moves to the next branch when the tactic execution
+at the current branch fails, and stops at the first case that
+the corresponding tactics do not fail. Thus, by organizing the
+tactics into the components, we manage to turn the overall structure
+into search trees instead of a linear list.
+
+Second, application of tactics may results in new subgoals unless
+it solves the goal completely. We would like to discharge these
+subgoals on the fly as soon as they becomes provable by themselves.
+This limits the number of subgoals exist in any moment of proof, thus
+prevent the size to explode, and also reduces memory consumption
+significantly. Discharging subgoals sooner also accelerates instantiations
+of existential variables, thus preventing the tactics to spin out
+more and more existential variables based on existing ones, which
+reduces the likelihood of the tactic stopping due to the existential
+variables. Thus, we integrate the main tactic with many kinds of theory solvers
+(again implemented in Ltac) to discharge subgoals as soon as we can.
+
+Third, we try not to be too smart. Even in some cases, where it would generally
+make sense to proceed the proof in certain ways, unless it is guaranteed to
+be always the right choice, we would rather let
+the tactic to stop and let the user to make right decision. This principle
+holds even when proceeding the tactics does not results in inconsistent states.
+We would prefer to let the user make the right decision by invoking the right
+tactics later rather than letting the tactic potentially waist time trying
+various approaches then eventually times out.
+
+Last not the least, we try to only support the cases that are most commonly
+used in our main top level tactics. We would like to support the full
+features of ClightX in our library so that it can be used to verify arbitrary
+system software written in ClightX. On the other hand, there are many
+C features that are not used often. If we include all these cases in the
+main tactic path, then it would slow down the entire pattern matching process
+with these extra cases that rarely hit, thus making the entire proof slow to compile.
+Note that this would be true even if we put these relatively rare cases
+at the end of the pattern match list. The top level tactics are applied
+repeatedly on all the current subgoals to check whether any of the subgoals
+can progress with the tactics, and while it progresses at some subgoals, for
+many of others, it would go through entire pattern match list before the tactics
+fail on these goals. Thus, I only include cases to handle most common ClightX
+constructions in the main high level tactics.
+On the other hand, I have also developed separate tactics to handle the rest
+of constructions that has relatively rare usage, and also the actual top
+level tactics that includes all these, which can be convenient if the performance
+of the current proof is not the bottleneck.
+
+
+\section{Overall Approach}
+\label{sec:approach}
+
+Our basic idea is simple. Given a proof goal like one shown in Fig.~\ref{fig:cons_buf_code_lemma}, we can repeatedly apply the big-step
+semantic rules shown in Fig.~\ref{fig:clight_eval_expr}, \ref{fig:clight_exec_stmt},
+\ref{fig:clight_exec_stmt2}, and \ref{fig:clight_outcomes} to decompose all
+the Clight expressions and statements into smaller ones together with
+the extra conditions required for the evaluation or the execution as subgoals.
+This procedure is called the verification condition generation. 
+
+Take a simple example, the implementation of \texttt{cb\_init} (see
+Fig.~\ref{fig:source:cons-buf}) is a simple sequential composition of
+two assignment operations. To verify the corresponding low level specification
+\texttt{cb\_init\_lspec} shown in \ref{fig:cons_buf_code_lemma}, we can first
+remove the existential quantifier by replacing it with an existential
+variables (with \textsf{esplit} tactic). Then we can turn the sequentially
+composed statement into two individual statements by applying the rule
+\texttt{exec\_Sseq\_1} shown in Fig.~\ref{fig:clight_exec_stmt} (with
+the \textsf{eapply} tactic). Furthermore, the individual assignment
+statements can be turned into appropriate smaller subgoals
+by applying the rule \texttt{exec\_Sassign} shown in
+Fig.~\ref{fig:clight_exec_stmt}, and we repeatedly follow this approach
+by applying applicable rules shown in Fig.~\ref{fig:clight_eval_expr},
+\ref{fig:clight_exec_stmt}, \ref{fig:clight_exec_stmt2}, and
+\ref{fig:clight_outcomes}, and discharge simpler subgoals as soon as
+they become provable by themselves with the current assumptions.
+
+Though it sounds reasonably simple, there are many nuances that require extra
+careful thoughts. 
+In the rest of sections, I discuss various components of our tactic libraries
+and discuss such challenges and our solutions in more detail.
+In addition, the language Clight strictly follows the C standard and disallows the
+undefined behaviors described in the standard C semantics. Thus, these all
+become the preconditions in the semantic rules of the Clight language. For a
+reasonably realistic C module, the set of verification condition generated is
+extremely large. Thus, discharging the conditions after they are fully generated
+would be very inefficient. In the following sections, I also introduce the list of
+theory solvers I have designed to discharge the sub-goals of various forms
+on the fly as soon as they become provable.
+
+
+\section{Simple proof}
+
+When the goals get down to a very simple forms, e.g., simple equalities or inequalities,
+goals that are already known in the assumptions, {\it etc}, we would expect to
+discharge them easy with tactic like \textsf{reflexivity}, \textsf{assumption/eassumption},
+\textsf{omega}, and so on. On the other hand, as we discussed in Section \ref{sec:principle},
+randomly applying these tactics could lead us to non-provable subgoals, due to the
+existential variables. Fortunately, Coq provides two tactics \textsf{is\_evar v}
+and \textsf{has\_evar e} which only succeed if the provided variable is an existential
+variable or the expression contains any existential variable, respectively.
+Fig.~\ref{fig:simpleproof} shows our approach to instead invoke the ``safe'' versions
+of \textsf{reflexivity} and \textsf{eassumption} utilizing these tactics.
+For example, \textsf{sreflexivity} only calls \textsf{reflexivity} on true equalities,
+but not in the case of inequalities. On the other hand, \textsf{seassumption}
+only calls \textsf{eassumption} tactic when it thinks it is safe to do so.
+In the figure, \textsf{isn\_evar v t} only calls the tactic t if \textsf{v} is not
+an existential variable, and fails otherwise; while \textsf{hasn\_evar e t} would only
+call \textsf{t} if the expression \textsf{e} does not contain any existential variables.
+
+\begin{figure}
+\lstinputlisting [language = Coq] {src/simpleproof.v}
+\caption{Discharging simple proof goals with potential existential variables}
+\label{fig:simpleproof}
+\end{figure}
+
+With this approach, in may cases, we could cause the automation engine to stop early,
+even when it has the ability to instantiate many existential variables correctly.
+Then after invoking the main tactic \textsf{cauto}, the human prover needs to
+instantiate the existential variables that caused the stop (or instantiate
+any many remaining existential variables as she can), and reinvoke \textsf{cauto}
+tactic. However note that the first \textsf{cauto} may result in a huge number
+of unproven subgoals, and once we are done the instantiation, we need to call
+the equivalent number of \textsf{cauto} tactic to prove the rest of subgoals.
+This list may grow exponentially and result in an unnecessarily lengthy proof
+script of \textsf{cauto} call chains.
+Instead, in practice, I normally chain the calls to the proof tactics, e.g.,
+$\textsf{cauto};~[\textsf{idtac}~|~\textsf{do\_right\_thing}~|~\textsf{idtac}];
+~\textsf{cauto}$. 
+Recall that a call to $t_1;t_2$ would apply the tactic $t_2$ to all the remaining
+subgoals after the $t_1$ tactic call; $[t_1;t_2;...t_n]$ notation allows
+us to specify which tactic we would like to invoke on each remaining individual
+subgoals; and \textsf{idtac} is a tactic that does nothing and always succeeds.
+
+
+\section{Sequential code}
+
+Sequentially composed code sounds easy to deal with, as we can simply
+decompose it into its subcomponents. On the other hand,
+if we look at the semantic rules in Fig.~\ref{fig:clight_exec_stmt}, there are
+two separate rules for sequentially composed code. In addition to the rule
+\texttt{exec\_Sseq\_1} that covers the normal execution of two statements
+one followed by the other, we also have the rule \texttt{exec\_Sseq\_2},
+where the first statement terminates by \texttt{return} or \texttt{break}
+(when the statement is within a loop) statement, and the whole statement
+terminates without executing the second component.
+
+In order to automate the proof, we need an effective way to decide which
+of the two rules we should apply when we hit the sequentially composed statements.
+This could be extremely hard to achieve, as we may have statements of form
+$\{s_1;~s_2;\}~\{s_3;~s_4;\}$, where $s_1$ or $s_2$ may contain branches,
+which makes it not feasible to determine whether the first component would exit
+normally or not without evaluating the actual branching expressions.
+On the other hand, recall that our ClightX source code is automatically generated
+by the tool \texttt{clightgen} from the standard C source code, and \texttt{clightgen}
+always turns the sequentially composed statements into the form
+$s_1;~s_2;~s_3;~s_4;$, which prevents many troubles automatically determining
+appropriate rules. Still, if we hit the statement of the form $if(e)~return;~s;$,
+it would be hard to determine the cases without actually evaluating the expression
+$e$. Instead of getting into the battle of various efforts/heuristics to determine
+the set of tactics that work for all these cases, our main automation tactics
+always chooses the normal case whenever it gets confused. This would mean that
+we need to stick to a certain C coding standard in order to gain full automation.
+On the other hand, we does not obverse much inconvenience by sticking to only
+non-ambiguous forms.
+
+\section{Branches}
+
+Handling branching code needs special attention. Naively applying the logical
+rules in Fig.~\ref{fig:clight_exec_stmt} repeatedly would not work, because,
+the same branching condition can only be evaluated to either true or false,
+but not both, i.e., all the existential variables for the uncertain values
+cannot be instantiated more than once with different values.
+This would mean that all branching decisions should be fixed before we introduce
+any existential variables. 
+
+One way to solve the issue is to design a custom programming logic that does
+the branching for us and gives us two separate goals to solve for the two branches.
+The challenge here is that in order to separate these two goals nicely, it would
+force us to explicitly provide many temporary or final states that we do not care
+about, e.g., the intermediate states during the execution of statements (which
+was automatically derived with existential variables), and the final temporary
+local environment $le'$ in Fig.~\ref{fig:cons_buf_code_lemma}.
+
+Instead, in our framework, we simply require all the case split to be done upfront,
+to generate separate full subgoals for various branches, before we start our main
+proof. We found that, in practice, this does not bring us much inconvenience as
+it sounds in the first place. The primary reason is that we always insist to
+write deep specifications to capture everything we would like to know in the
+implementation, and thus in most cases, the specification also contains branches
+when the implementation does. In this case, we simply perform the inversion
+on the specification to get separate subgoal for each branch.
+
+One potential inconvenience is that when the implementation contains big
+chunk of common code that is shared among branches, we may end up doing
+same proof multiple times if the proof is not done properly. On the other
+hand, we simply overcome this by extracting and proving the common part once
+as a separate lemma.
+
+\section{Loops}
+
+It is obvious that loops need special treatment, as otherwise, we would keep
+applying the semantic rules in Fig.~\ref{fig:clight_exec_stmt} in definitely.
+Instead, I have developed various separate logic modules for loops, and
+an example module of proving simple while loops is shown in Fig.~\ref{fig:loop_proof}.
+As shown in Fig.~\ref{fig:loop_proof}, each of such modules is parameterized
+over a precondition $P$ (which is expected to hold at the loop entry), and
+a post condition $Q$ (that needs to be proved to hold at loop exit).
+
+Recall that we enforce total correctness, thus always need to prove that
+the loop does terminate. This is achieved by enforcing a termination metric that
+``decreases'' at every iteration.
+For example, the module in Fig.~\ref{fig:clight_exec_stmt} requires a termination
+metric of type $W$ with some sort of ``less than'' relation $lt$, and a proof
+that the relation $lt$ is actually well founded.
+
+
+\begin{figure}
+\lstinputlisting [language = Coq] {src/loop_proof.v}
+\caption{Framework for proving a simple while loop}
+\label{fig:loop_proof}
+\end{figure}
+
+Another important input to the module is the loop invariant $I$, which is
+a relation over the changing state (memory and temporary environment), and
+the termination metric. Then we are required to provide two proofs.
+First, the state at the loop entry satisfies the loop invariant $I$,
+if it also satisfies the precondition $P$ ($P\_implies\_I$).
+Next, if the state before a particular iteration satisfies the loop
+invariant, then either the loop condition evaluates to false, causing
+the loop to exist with an exit state satisfying the post condition $Q$,
+or the loop condition evaluates to true, and the loop continues, with
+states after this loop iteration still satisfy the loop invariant $I$,
+with a new termination metric that is ``less than`` the original one.
+
+With all these inputs, we can successfully derive the theorem
+{\em termination} in Fig.~\ref{fig:loop_proof} that states
+if the state at loop entry satisfies the precondition $P$,
+then the loop always terminates safely and the final state
+satisfies the postcondition $Q$. The proof can be achieved
+by performing induction on the termination metric and doing
+case analysis on whether the loop condition would be evaluated
+to true or false at this iteration. Intuitively, the termination
+is guaranteed because the metric ``decreases'' at every iteration,
+but cannot decrease indefinitely because of the well-founded order.
+
+With this framework support for loops, we always perform the verification
+of individual loops as separate lemmas that get applied when we prove
+the main code that contains the loops. Our main automation tactic
+seeks for an applicable lemma whenever it gets to a loop, and stops
+if it finds no appropriate lemmas to apply.
+
+\section{Arithmetic Solver}
+
+The standard {\em omega} tactic is too weak to handle many arithmetic
+goals appear in our proof. The user code may contain many arithmetic
+operations that involve non-linear and bit-wise operations.
+To prevent the overflow, the Clight semantics requires every
+intermediate value in the middle of expression evaluations to be within the
+range regarding its type. In this way, most of the Clight code generates a huge
+set of arithmetic sub-goals for checking value ranges. We have incorporated
+the {\em cauto} tactic a powerful arithmetic solver that can handle divisions,
+modular operations, bit-wise operations, machine finite precision integers, {\it
+etc}. 
+
+
+\section{Partial Maps and Lists}
+
+Clight semantics also utilizes partial maps and Coq lists to represent the local
+variable environments and arguments. Furthermore, we extensively use partial
+maps and Coq lists in the abstract states to abstract many of the concrete data
+structures in memory. To support those, the tactic contains theory solvers to
+discharge proof goals for properties related to partial maps and Coq lists. The
+tactic also contains a number of domain specific libraries which handle items
+such as device transitions and logs.
+
+
+\section{Verification of LAsm functions}
+We have also developed an automation library to provide some
+automation support in proving the modules directly implemented in LAsm.
+
+The very high level idea in the tactic implementation for LAsm language
+is very similar to that in ClightX, i.e., we apply various semantic rules
+in its operational semantics (see Fig.~\ref{fig:lasm_semantics}) when we
+hit each of its statements.
+On the other hand, the assembly code is much
+less structured in nature compared to the ClightX programs, and it
+does not (and cannot) have a nice big-step semantics as in ClightX.
+The automation tactics we have developed for LAsm is not
+as mature or powerful as the ones for ClightX. For example, we only
+have many small tactics that we can use to manually apply for various
+statements and common patterns, but does not have a top level ``clever''
+tactic that tries to automatically apply various smaller tactics to
+solve the entire goal. In practice, we find it to be good enough
+since the part of system code directly implemented in assembly
+is normally relatively small.

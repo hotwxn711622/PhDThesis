@@ -1,0 +1,219 @@
+\hyphenation{CompCert}
+\hyphenation{CompCertX}
+\hyphenation{Clight}
+\hyphenation{ClightX}
+\hyphenation{CertiKOS}
+\hyphenation{mCertiKOS}
+\hyphenation{mCTOS}
+\hyphenation{CTOS}
+\hyphenation{mCTOS-hyp}
+\hyphenation{mCTOS-rz}
+\hyphenation{mCTOS-emb}
+\hyphenation{CCTOS}
+%% Aonymization
+\newif \ifanonymized \anonymizedtrue
+
+\ifanonymized
+\newcommand\CTOS{CTOS}
+\newcommand\CCTOS{CCTOS}
+\else
+\newcommand\CTOS{CertiKOS}
+\fi
+%% END Anonymization
+
+\ifTRthen
+\newcommand{\ifTR}[2]{#1}
+\else
+\newcommand{\ifTR}[2]{#2}
+\fi
+
+%\newcommand\mimp{\mathcal{M}_C}
+%\newcommand\mabs{\mathcal{M}_A}
+\newcommand\mimp{M_C}
+\newcommand\mabs{M_A}
+\newcommand\layer[3]{(#1,#2,#3)}
+
+\newcommand\pCTOS{p\CTOS}
+\newcommand\mCTOS{m\CTOS}
+\newcommand\mCTOSbase{\mCTOS{}}
+\newcommand\mCTOShyper{\mCTOS{}-hyp}
+\newcommand\mCTOSringz{\mCTOS{}-rz}
+\newcommand\mCTOSembed{\mCTOS{}-emb}
+
+\newcommand\sem[2]{[\![#2]\!]_{#1}}
+\newcommand\join{\!\bowtie\!}
+\newcommand\Refrel{\sqsubseteq}
+\newcommand\LSem[1]{\textrm{LSem(}#1\textrm{)}}
+\newcommand\ClightX[1]{\textrm{ClightX(}#1\textrm{)}}
+\newcommand\CompCertX[1]{\textrm{CompCertX(}#1\textrm{)}}
+\usepackage{multirow}
+\newtheorem{invariant}{Invariant}
+\newcommand\ignore[1]{}
+\newcommand{\code}[1]{{\it #1}}
+
+\newcommand{\event}[1]{{\mathtt{#1}}}
+%\newcommand\oracle{\mathlarger{\varepsilon}}
+%\newcommand\oracle{\varepsilon}
+%\newcommand\oracle{\mathlarger{\mathlarger{\varepsilon}}}
+\newcommand\hardoracle{\oracle_{hs}}
+\newcommand\machx{\Pi}
+\newcommand\mach[1]{\machx_{\text{#1}}}
+\newcommand\machrel{\Refrel}
+\newcommand\switch{\!\hookrightarrow\!}
+\newcommand{\wbigcup}{\mathop{\widetilde{\bigcup}}\displaylimits}
+\newcommand\inv{\texttt{INV}}
+\newcommand\set[1]{\{#1\}}
+\newcommand\machbe[3]{#1 @ \left(#2, #3\right)}
+\newcommand\env[1]{\overline{#1}}
+\newcommand\ectxt[1]{{\rm{}EC}({#1})}
+\newcommand\ectxtc{{\rm{}EC}}
+\newcommand\myscale[1]{\Scale[0.9]{#1}}
+\newcommand\push{\mathsf{push}}
+\newcommand\pull{\mathsf{pull}}
+\newcommand\abst{\mathcal{A}}
+\newcommand\primt{\mathcal{P}}
+\newcommand{\id}{\textbf{id}}
+
+\newcommand\efrom[1]{(#1\intp)}
+\newcommand\eto[1]{(\intp#1)}
+\newcommand\ssame{\odot}
+\newcommand\sdiff{\triangle}
+\newcommand\mysout[1]{\text{\sout{$#1$}}}
+%\newcommand\PLayer[3]{#1^{#3}[#2]}
+\newcommand\PLayer[3]{#1[#2,#3]}
+\newcommand\TLayer[3]{#1[#2][#3]}
+\newcommand\Query[3]{#1[{#3}, #2]}
+\newcommand\Lthread{L_\comm{thread}}
+\newcommand\Lbthread{L_\comm{bthread}}
+\newcommand\Lhbthread{L_\comm{hbthread}}
+\newcommand\Lhthread{L_\comm{hthread}}
+\newcommand{\sstepr}[5]{#1(#2, #3) \ni (#4, #5)}
+\newcommand{\sstep}[4]{#1(#2, #3) \ni (#4)}
+\newcommand{\para}[1]{\ifTR{}{\vspace{-4pt}}\paragraph{\textbf{#1}}}
+\newcommand{\modulef}[1]{#1 \mapsto \kappa_{#1}}
+
+% Useful shorthands used in layer.tex
+\newcommand{\pcom}{\parallel}
+\usepackage{scalerel}
+\DeclareMathOperator*{\bigJoin}{\scalerel*{\Join}{\sum}}
+\newcommand{\kw}[1]{{\mathsf{#1}}} % render as a keyword
+\newcommand{\pset}[1]{{\mathcal{P}({#1})}}
+\newcommand{\Beh}{\mathsf{Beh}} % the set of behaviors
+\newcommand{\Ev}{\mathbb{E}} % the set of events
+\newcommand{\Prog}{\mathbb{P}} % a set of programs
+\newcommand{\Lang}{\mathbb{L}} % a language with log
+\newcommand{\Mach}{\mathbb{M}} % a machine
+\newcommand{\Env}{\mathcal{E}} % an environment context
+\newcommand{\refines}{\sqsubseteq} % refinement relation
+\newcommand{\EC}[1]{{\kw{EC}({#1})}} % encironment
+\newcommand{\Layer}{\mathcal{L}}
+\newcommand{\Rely}{\mathcal{R}}
+\newcommand{\Guard}{\mathcal{G}}
+\newcommand\oracle{\mathcal{E}}
+
+\newcommand\acq{\mathsf{acq}}
+\newcommand\rel{\mathsf{rel}}
+\newcommand\deq{\mathsf{deQ}}
+\newcommand\enq{\mathsf{enQ}}
+\newcommand\reach{\mathsf{reachable}}
+\newcommand\now{\mathsf{now}}
+\newcommand\ticket{\mathsf{ticket}}
+\newcommand{\partf}{\rightharpoonup}
+\newcommand\bytelist{\textit{bl}}
+\newcommand\spawn{\mathsf{spawn}}
+\newcommand\yield{\mathsf{yield}}
+\newcommand\cyield{\mathsf{cyield}}
+\newcommand\sleep{\mathsf{sleep}}
+\newcommand\vundef{\mathsf{vundef}}
+\newcommand\ofs{\mathsf{ofs}}
+\newcommand\wakeup{\mathsf{wakeup}}
+\newcommand\regset{rs}
+%\newcommand\tid{\mathsf{tid}}
+\newcommand\alist{\rightharpoonup}
+\newcommand\tid{t}
+\newcommand\eempty{\mathsf{empty}}
+\newcommand\option{\mathsf{option}}
+\newcommand\qloc{\mathsf{q\_loc}}
+\newcommand\perm[1]{\mathsf{status}(#1)}
+\newcommand\LAsm{\mathsf{LAsm}}
+\newcommand\TAsm{L_\mathsf{pthread}}
+\newcommand\boot{\mathsf{x86}}
+\newcommand\allid{ID}
+
+\usepackage{xspace}
+\newcommand*{\LargerCdot}{\raisebox{0.25ex}{\scalebox{0.7}{$\bullet$}}}
+\newcommand\cons{\LargerCdot}
+\newcommand\comm[1]{\mathsf{\textcolor{black}{#1}}}
+\newcommand\commb[1]{\mathsf{#1}}
+%\newcommand\mtext[1]{\mathit{#1}}
+\newcommand\replay{\mathbb{R}}
+\newcommand\calwait{\mathbb{B}}
+\newcommand\any{\cdot}
+\newcommand\nonev{\_}
+\newcommand\spec{\sigma}
+\newcommand\integer{\mathbb{N}}
+\newcommand{\PBoot}{L_\mathsf{x86}}
+\newcommand{\XAsm}{\mathsf{XAsm}}
+\newcommand\CAS{\text{CAS}}
+\newcommand\XADD{\text{XADD}}
+\newcommand\XCHL{\text{XCHL}}
+\newcommand\FAA{\text{FAA}}
+\newcommand\FAI{\text{FAI}}
+\newcommand\regs{\rho}
+\newcommand{\eg}{{e.g.\xspace}}
+\newcommand{\ie}{{i.e.\xspace}}
+%\newcommand{\cf}{{\em cf. }}
+\newcommand{\cf}{see }
+\newcommand{\etal}{{\em et al.\xspace}}
+\newcommand\step[1]{\overset{#1}{\rightarrow}}
+\newcommand\emptye{\epsilon}
+\newcommand\model{\models}
+\newcommand\opsem[3]{l,ge\model #2 \step{#1} #3}
+\newcommand\opsems[3]{l,ge\model #2 \overset{#1}{\rightarrow^*} #3}
+\newcommand\partialf{\rightharpoonup}
+
+\newcommand\fevent[1]{\tkfig{\nevent{#1};}}
+\newcommand\incticket{\comm{FAI\_t}}
+\newcommand\incnow{\comm{inc\_n}}
+\newcommand\getnow{\comm{get\_n}}
+\newcommand\tshared{\comm{tshared}}
+\newcommand\holdlock{\comm{hold}}
+\newcommand\lockstatus{\comm{lock\_status}}
+\newcommand\true{\mathsf{true}}
+\newcommand\false{\mathsf{false}}
+\usepackage{relsize}
+\newcommand{\ltyp}[4]{#1 \vdash_{#2} #3 : #4}
+\newcommand{\lltyp}[5]{#2 \vdash^{#1}_{#3} #4 : #5}
+\newcommand{\rulename}[1]{\textsc{\smaller{}#1}}
+
+\newcommand\fatom[1]{#1}
+\newcommand\fshare[1]{#1}
+\newcommand\fprivate[1]{#1}
+\newcommand\fpush[1]{\code{#1}}
+
+%\newcommand{\defeq}{\stackrel{\texttt{def}}{=}}
+\newcommand{\defeq}{=}
+
+%% COMMENTS 
+\newif \ifcomments \commentstrue
+
+\ifcomments
+\newcommand{\zhong}[1]{\textbf{\textcolor{red}{[ #1 --Zhong]}}}
+\newcommand{\newman}[1]{\textbf{\textcolor{Orange}{[ #1 -- Newman]}}}
+\newcommand{\todo}[1]{\textbf{\textcolor{Orange}{[TODO: #1 ]}}}
+
+% show line numbers
+%\usepackage{lineno,xcolor}
+% Running line numbers:
+%\linenumbers
+%\setlength\linenumbersep{5pt}
+%\renewcommand\linenumberfont{\normalfont\tiny\sffamily\color{OliveGreen}}
+
+
+\else
+\newcommand{\zhong}[1]{}
+\newcommand{\newman}[1]{}
+\newcommand{\todo}[1]{}
+\fi
+%% END COMMENTS
+

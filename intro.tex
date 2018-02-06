@@ -1,0 +1,208 @@
+An operating system (OS) kernel serves as the lowest level of any
+system software stack. The correctness of the OS kernel is the basis
+for that of the entire system. In a monolithic kernel, device drivers
+form the majority of the code base; 70\% of the Linux 2.4.1 kernel are
+device drivers~\cite{Chou:2001}. Furthermore, such drivers are found
+to be the major source of crashes in the Linux and Windows operating
+systems~\cite{Chou:2001,Ball:2006,Ganapathi:2006}. While recent
+efforts on seL4~\cite{klein14} and CertiKOS~\cite{dscal15} have
+demonstrated the feasibility of building formally verified OS kernels,
+it is unclear how to extend their work to verify the functional
+correctness of device drivers. In CertiKOS~\cite{dscal15}, drivers are
+unverified, and it is not obvious how to extend their framework to
+model devices and interrupts. In a microkernel like
+seL4~\cite{klein14}, device drivers are implemented in user space,
+and, though its proofs guarantee driver isolation, it does not
+eliminate bugs in its user-level drivers.
+% The Verisoft team~\cite{verisoft07} has done a large body of work
+% aiming to verify an OS kernel with device drivers
+% \cite{Alkassar:OSVE09,Alkassar:VSTTE08-225,Alkassar:VSTTE2010-71},
+% but their drivers are verified completely at the assembly level.
+% Furthermore, they put many restrictions on the devices they can
+% verify, many of which are not satisfied by a large number of
+% existing devices.
+
+A major challenge in driver verification is the interrupt: a non-local
+jump to some driver code, triggered by a device. When device drivers
+are implemented inside the kernel (for better performance), the kernel
+should be interruptible; otherwise, it can lead to an unacceptable
+interrupt processing latency.  Reasoning about interruptible code is
+particularly challenging, since every fine-grained processor step
+could contain a non-local jump, and, upon return, the machine state
+could be substantially changed. Even worse, it is not clear how such
+reasoning should be done at the C level, which is completely
+interrupt-unaware. Existing work either assumes that interrupts are
+turned off inside the kernel~\cite{dscal15,verisoft07}, or polls the
+interrupts at a few carefully chosen interrupt points~\cite{klein14}.
+
+Furthermore, interrupt hardware is not static, but is configured by
+software. In order to verify any interesting device drivers (serial,
+disk, {\it etc}.), we first need to model the interrupt controller
+devices (e.g., LAPIC~\cite{mps97}, I/O APIC~\cite{ioapicd96}), and
+formally verify their drivers. This is important because, if the
+interrupt controllers are not initialized properly, it may lead to
+undesired interrupt behaviors. Device drivers also interact with
+interrupt controllers to mask/unmask particular interrupt lines.
+These issues have been overlooked in past work, where 
+interrupt controllers are assumed to be properly initialized and
+their drivers are correctly implemented~\cite{Alkassar:VSTTE08-225}.
+
+Finally, verifying an interruptible operating system with device
+drivers also faces the following challenges.
+
+{\em Devices and CPU run in parallel.} Thus, the executions of CPU
+instructions and device transitions can interleave arbitrarily. Code
+verification on this highly nondeterministic machine can be
+challenging, since it needs to consider device state transitions, even
+when the CPU is executing a set of instructions unrelated to external
+devices. Recent
+work~\cite{Alkassar:OSVE09,Alkassar:VSTTE08-225,Alkassar:VSTTE2010-71}
+tries to address this by enforcing a {\it stability} requirement
+that device states only change due to CPU operations. 
+%
+% Using this assumption, they have proven a reordering
+% theory and applied it to postpone the execution of all CPU instructions
+% unrelated to the device that is currently being manipulated.  They are then
+% able to turn the set of assembly level device operations into
+% atomic primitives, which are then lifted to their C level verification
+% framework as inline-assembly calls~\cite{Alkassar:VSTTE2010-71}.
+% Though the stability assumption suffices for their use case, it is
+%
+This requirement is, however, 
+too strong as devices interacting with 
+external environments are not stable: a serial device constantly
+receives characters through its port, a network card continuously
+transfers packets, an interrupt controller (IC) asynchronously
+receives interrupt requests, {\it etc}.
+
+{\em Devices may directly interact with each other.} Existing work
+assumes that a device driver monopolizes its underlying device and
+devices do not influence each other~\cite{Alkassar:VSTTE08-225}. This
+assumption does not hold for many devices in practice. For example,
+most devices directly communicate with an interrupt controller by
+signaling an interrupt.
+
+{\em Device drivers are written in both assembly and C.}  Existing
+device driver verification is either done completely at the assembly
+level \cite{Alkassar:VSTTE08-225,duan2013} or the verified properties
+are only guaranteed to hold at the C level \cite{Ryzhyk_09,Ryzhyk14}.
+For realistic use-cases, proven properties should be 
+translated down and then formally linked with
+the assembly-level proofs.
+
+% {\em The correctness of device drivers needs to be formally connected
+%   to the correctness of the OS kernel in a single proof
+%   context.}
+%
+{\em The correctness results of different components should be
+integrated formally.} For example, the correctness proofs of device
+drivers and the OS kernel
+% , both written in a combination of C and assembly,
+need to be formally linked as an integrated system,
+before one can deliver formal guarantees on the OS as a whole. Not
+doing so can introduce semantic gaps among different modules,
+% wherein a module makes assumptions contradicting with those of another,
+a scenario which introduced actual bugs in previous verification
+efforts as reported by Yang and Hawblitzel~\cite{hawblitzel10}. Unfortunately,
+this formal linking process was found to be even more challenging than
+the correctness proofs of individual modules
+themselves~\cite{Alkassar:VSTTE08-225}. Even OS's with user-level
+device drivers can suffer if the correctness proofs of their drivers are not
+formally linked with those of the kernel. For example,
+if some device driver code triggers a page fault at the user level,
+the behavior of the corresponding driver is linked to the behaviors of
+the page-fault handlers and address translation mechanism of the kernel.
+
+In this paper, we propose a novel compositional approach that tackles
+all of the above challenges. There are two key contributing ideas.
+One is to build up a certified ``virtual'' device hierarchy, and
+the other is a new abstract interrupt model, built upon a realistic
+hardware interrupt model through contextual refinement. We use these
+to build an extensible framework that systematically enforces the
+isolation among different operating system modules, which is important
+for scalability of any verification effort and critical for reasoning
+about interruptible code.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% TODO: (1) revise the following list of contributions
+%       (2) a new statement about our contributions over Gu et al
+%       (3) outline of the rest of the paper
+%       (4) refer to a later section regarding limitations
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+Our paper makes the following new contributions:
+\begin{itemize}
+\item We present a new extensible architecture for building certified
+  OS kernels with device drivers. Instead of mixing the device drivers
+  with the rest of the kernel (since they both run on the same
+  physical CPU), we treat the device drivers for each device as if
+  they were running on a ``logical'' CPU dedicated to that device.
+  This novel idea allows us to build up a certified hierarchy of
+  extended abstract devices over the raw hardware devices, meanwhile,
+  systematically enforcing the isolation among different ``devices''
+  and the rest of the kernel.
+
+%%%%%
+\item We present a novel abstraction-layer-based approach for
+  expressing interrupts, which enables us to build certified
+  {\em interruptible} OS kernels and device drivers. Our formalization of
+  interrupts includes a realistic hardware interrupt model, and an
+  abstract model of interrupts which is suitable for reasoning about
+  interruptible code. We prove that the two interrupt models are
+  contextually equivalent.
+
+%%%%%
+\item We present, to the best of our knowledge, the first verified
+  interruptible OS kernel and device drivers that come with
+  machine-checkable proofs.  The implementation, modeling, specification, and
+  proofs are all done in a unified framework (realized in the Coq
+  proof assistant~\cite{coq}), yet the machine-checkable proofs verify the
+  correctness of the assembly code that can run on the actual
+  hardware.
+\end{itemize}
+
+The rest of this thesis is organized as follows.
+Chapter~\ref{chapter:framework} presents our abstraction-layer-based verification
+technology using a concrete example, while
+Chapter~\ref{chapter:automation} details the challenges and solutions to
+our automation engine for verifying C programs.
+In Chapter \ref{chapter:sequential}, we present the concrete Coq
+implementations of the mCertiKOS verified
+kernel using the techniques presented in the previous chapters.
+The framework is further extended in Chapter \ref{chapter:driver}
+to support modular reasoning of device drivers and interrupts.
+A modular framework that can further support shared-memory concurrency
+with fine-grained locking is presented in Chapter \ref{chapter:concurrent}.
+Then, the limitations of various frameworks are discussed in
+Chapter \ref{chapter:limitation}, and we discuss various important
+related works in Chapter \ref{chapter:related}, and finally conclude
+in Chapter \ref{chapter:conclusion}.
+
+\paragraph{My Contributions}
+The work described in this thesis is based on joint work with various members
+in the CertiKOS project.\footnote{http://flint.cs.yale.edu/certikos/}
+The author is one of the two critical contributors for developing the methodology
+on performing large scale verification by building stacks of certified abstraction
+using two common patterns, presented in Chapter \ref{chapter:framework}. The automation
+engines for proving the C source programs (described in Chapter \ref{chapter:automation})
+are developed solely by the author, which is particularly suitable for the
+layer-based methodology and is the critical component of the framework. 
+The author is also one of the two main contributors of the verified kernel (presented
+in Chapter \ref{chapter:sequential}), and the
+extension to the framework to reason about device drivers and interrupts
+(detailed in Chapter \ref{chapter:driver}), and a critical contributor
+of the log-based approach on reasoning
+concurrent programs (illustrated in Chapter \ref{chapter:concurrent}). 
+
+\ignore{
+Chapter \ref{chapter:concurrent}
+briefly explains the ideas of certified concurrent abstraction layers
+and presents some of the key components the author contributed
+for the verified concurrent kernel: verification of ticket lock algorithm,
+and extending the verified hypervisor to support multiple virtual machines
+(one virtual machine on each CPU core). 
+the hardware device models and verification of the device
+driver C source code using the automation engines the author developed,
+proving the refinement of
+layer interfaces and interrupt models and the driver implemented in assembly. 
+}

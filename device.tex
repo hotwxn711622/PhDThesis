@@ -1,0 +1,230 @@
+\section{Machine Model with Devices}
+\label{sec:model}
+
+In this section, we present our machine model, which is based on the Intel x86
+architecture. We start from the {\it LAsm} machine model, and extend it
+to model devices and interrupts.
+
+Our devices are modeled as finite state transition systems interacting with the
+CPU and the external environments. Each read/write (input/output) operation
+initiated from the CPU triggers an atomic big-step transition in the
+corresponding device.  Device transitions (i.e., $\textsf{trans}$ in
+Fig.~\ref{fig:driver}) are affected by two types of interactions, one by the CPU
+and another by external events.
+
+\paragraph{Device Transitions caused by the CPU} The CPU may trigger a
+device transition through I/O instructions or memory-mapped I/O
+operations. These operations can be categorized into the following
+two actions:
+
+\begin{definition}[CPU Operation on a Device]
+\[
+\begin{array}{rll}
+\mathcal{O}::= & \textsf{input} ~  n  &~~~~~~\vartriangleright \text{Read value from the register at address $n$} \\
+| & \textsf{output}  ~ n ~ v &~~~~~~\vartriangleright \text{Write value $v$ to the register at address $n$}
+\end{array}
+\]
+\end{definition}
+
+For every device, we define an atomic transition function
+$\delta^{\textsf{CPU}}$, which takes the current device state $s$ and
+a CPU operation $o$, and returns the new state $s'$. Note that
+$\delta^{\textsf{CPU}}$ is not a CPU transition, instead, it is strictly a
+{\em device transition} triggered by a CPU I/O operation.
+
+\paragraph{Device Transitions caused by External Events}
+Device transitions can also be caused by events from the external
+environment, such as the keyboard or network, with specific
+transitions depending on the kind of event. When modeling these
+external events, we take a minimalistic approach: though the devices
+can receive all kinds of different external events, we only model
+those that change the observable behavior of the device.  Thus, the
+events do not map one to one to the transitions in the device hardware but
+rather to the CPU observations on the hardware. We model the device
+interfaces, not the device internals. The device interface contains
+all the information that a programmer can know about its states.
+% or interaction with peripheral devices is via the CPU intermediary.
+Some example events are:
+
+\begin{definition}[Device External Events] \label{def:eevent}
+\[
+\begin{array}{rll}
+E ::= &  &  \\
+ \multicolumn{3}{l}{\vartriangleright \textit{UART device}} \\
+ | & \textsf{Recv} ~ (s: \textsf{list} ~ \mathsf{char}) &~~~~~~\vartriangleright \textit{UART receives string s} \\
+ | & \textsf{NoSendingCompAck} &~~~~~~\vartriangleright \textit{Sending is not complete} \\
+ | & \textsf{SendingCompAck} &~~~~~~\vartriangleright \textit{UART completes the sending} \\
+ \multicolumn{3}{l}{\vartriangleright \textit{Keyboard device}} \\
+ | & \textsf{KeyPressed} ~ (c: \mathbb{Z}) &~~~~~~\vartriangleright \textit{A specific key is pressed} \\
+ | & \textsf{KeyReleased} ~ (c: \mathbb{Z}) &~~~~~~\vartriangleright \textit{A specific key is released} \\
+ \multicolumn{3}{l}{\cdots} \\
+\end{array}
+\]
+\end{definition}
+
+External events are unpredictable, as their causes are not controlled by the OS.
+We determinize the behavior of each device by parametrizing it with
+the set of all possible list of events $\ell^{env}$ that will be processed
+sequentially when the CPU performs I/O operations
+on this device.
+The atomic transition function
+$\delta^{\textsf{env}}$ takes an external event $e$ as input and changes the device states
+accordingly.
+
+Note that events, even within a single device, can commute. For
+example, a serial port serves two roles: to receive user input
+and to send program output.  Accordingly, among the events a serial
+device can receive are one for the reception of a new input string,
+and one signaling that some past output operation has been
+completed. Consider a function that first writes to a serial port,
+then waits until the write operation is completed by repeatedly
+reading some relevant status register. During one of these reads the
+user might send new input to the serial port. It would be reasonable
+for the device to observe the corresponding {\it \textsf{Recv}} event
+during one of the register reads, but doing so would make verifying
+the write function unnecessarily complex; not only would a function
+need to handle its own logic, but it would also need to handle any
+other state transition the device could undergo, even if the result
+were not observable in the current function.
+
+\ignore{
+\hao{\sout{
+One way to mitigate this complexity would be to add invariants to the sequence of
+observed events $\ell^{env}$, requiring that some events are in a predefined pattern appears at a point
+when the device driver wishes to handle it, but, taken too far, this would make
+$\ell^{env}$ contain only a subset of possible input-sequences, thus making the
+model unrealistic. Instead, we add rules for how devices observe events.
+}} \hao{it is not the correct way}
+}
+
+To address this verification challenge, each device keeps a set of
+local logs $\vec{\ell} = \{\ell_1, ... \ell_k\}$, each of which is a strict prefix
+of $\ell^{env}$.  
+\footnote{We have chosen the prefix form over the subset to allow us
+determine more easily where the current execution is at on the global
+event list.}
+The serial device from the example above could
+contain two local logs, one for input and one for output.  Then when
+$\delta^{\textsf{env}}$ receives an event that does not correspond to
+the currently processed action, the event can simply be skipped.
+\ignore{
+Since the events in separate local logs commute,
+when $\delta^{\textsf{env}}$ receives an event that belongs in a local log other than the one
+currently being processed, the event can simply be skipped.
+}
+When a later action observes a part of the device state which is
+affected by the event, that action will handle the event. In the
+serial port example, we would defer handling the {\it \textsf{Recv}}
+event until some process reads from the serial port.
+
+Every raw device provides two I/O primitives: $\texttt{read} ~ n$ and
+$\texttt{write} ~ n ~ v$. The $\texttt{read}$ primitive first updates
+the device state based on the environmental device transition
+$\delta^{\textsf{env}}$ with the next relevant external event in
+$\ell^{env}$, then returns a value from the new state, and finally
+does the transition $\delta^{\textsf{CPU}}$ triggered by this read
+action. The $\texttt{write}$ primitive first triggers the transition
+$\delta^{\textsf{env}}$ to update the device state based on the next
+relevant external event, then performs the transition
+$\delta^{\textsf{CPU}}$ initiated by this write operation.
+
+% In this paper, we use the standard list notations of \textsf{nil},
+% \textsf{cons}, \textsf{hd}, and \textsf{tl}.
+In the following, the function $\textsf{next}(\ell^{env}, \ell_i)$ finds
+the first relevant event $e$ in $\ell^{env}$ that has not yet been
+processed with respect to the local log $\ell_i$, and returns the event
+$e$ plus a new local log that is synchronized with $\ell^{env}$ up to
+the event $e$.
+
+\ignore{
+, and define a new list operation:
+
+\begin{small}
+	\[ \begin{array}{lrlr}
+	\ell_1 - \ell_2 & ::= & \left\{\begin{array}{ll}
+	\ell_1 & \textsf{if} ~ \textsf{hd} ~ \ell_1 \neq \textsf{hd} ~ \ell_2 \\
+	\textsf{tl} ~ \ell_1 - ~ \textsf{tl} ~ \ell_2 & \textsf{if} ~  \textsf{hd} ~ \ell_1 = \textsf{hd} ~ \ell_2 \\
+	\end{array} \right. & \text{(Minus)} \\
+	\ignore{
+	
+	\ell_1 \preceq \ell_2 & \equiv & \ell_1 = \textsf{nil} & (\text{Prefix}) \\
+	& | & \textsf{hd} ~ \ell_1 = \textsf{hd} ~ \ell_2 \wedge \textsf{tl} ~ \ell_1 \preceq \textsf{tl} ~ \ell_2 }
+	\end{array}
+	\] 
+\end{small}
+}
+
+Now, we define the operational semantics of the set of device primitives
+formally. Let $\kappa$ be the function retrieving the value of device register
+addressed by $n$, then we have:
+
+\[
+	\begin{array}{lr}
+	\inferrule{
+	(e, \ell'_i) = \textsf{next} (\ell^{env}, \ell_i) \\	
+	s' = \delta^{\textsf{env}} (s, e) \\
+	res = \kappa(n, s') \\
+	s'' = \delta^{\textsf{CPU}} (s', \textsf{input} ~ n) \\
+	}{
+	\texttt{read} (n, s, \ell_i, \ell^{env}) \defeq (res, s'', \ell'_i) \\
+	} & \text{(\texttt{read})} \\
+\\
+	\inferrule{
+	(e, \ell'_i) = \textsf{next} (\ell^{env}, \ell_i) \\	
+	s' = \delta^{\textsf{env}} (s, e) \\
+	s'' = \delta^{\textsf{CPU}} (s', (\textsf{output} ~ n~ v))
+	}{
+	\texttt{write} (n, v, s, \ell_i, \ell^{env}) \defeq (s'', \ell'_i) \\
+	} & \text{(\texttt{write})} \\
+	\end{array}	
+\]
+
+\ignore{ \newman{We need to very CAREFULLY explain here that we only
+    observe one ``combined'' event in every CPU operation. Then there
+    will be the case where there is no external event happened since
+    last operation. That's why we have the special NOEVENT event.  We
+    have to be careful because this does make the event model
+    unrealistic.  Furthermore, we assume that between two operations,
+    we would not receive unrelated event (then it cannot be combined
+    into one). We can discuss this tomorrow.}  }
+
+Thanks to the local logs, this machine model eliminates much of the
+nondeterminism that complicates reasoning about asynchronous systems.
+Nonetheless, it accurately models the observable behaviors of real hardware.
+
+Ideally, the global event list should contain a sequence of small atomic
+events which gets associated with time when they get triggered. Then the framework
+should have some notion of real-time clock that allows us to determine what exact
+set of events should be consumed by the next transition based on the current time.
+This is out of scope of the current paper. Instead, we allow our transition
+to consume a single ``combined'' event (as a list of event). For example, the
+``Recv'' event in the Definition \ref{def:eevent} takes a list of characters.
+In addition, a device may also consume an ``empty'' event which indicates there
+was no event triggered in the real world since the last time we checked $\ell^{env}$.
+We parameterize our proof
+in a way that it hold for all possible combinations of such combined event
+list.
+
+\ignore{
+There is a mapping between each $n$ in the $\textsf{input}~n$ /
+$\textsf{output}~n~v$ and the state need to be accessed. This mapping is hidden
+behind the specification of function $\kappa$ and $\delta^{\textsf{CPU}}$ for
+handling output events, and it essentially reflects the interfaces between the
+CPU and devices. For most drivers, there are three types of methods to interact
+with devices: \textit{port-mapped I/O} and \textit{memory-mapped I/O}.
+
+For the port-mapped I/O, we introduce two primitives: $\textsf{in}~n$ and
+$\textsf{out}~n~v$ to branch the port access to the raw device \textsf{read} and
+\textsf{write} function. Following the ``logical CPU'' approach in
+Sec.~\ref{sec:overview}, we enforce each range of ports only belongs to one
+isolated machine, and that guarantees that the device cannot be messed by code
+that are not in this driver. Memory-mapped I/O follows the same design. The
+memory region that are used to access to one devices is also viewed as the part
+of the memory belongs to that device.
+}
+
+% In the next section, we show how to extend the
+% machine model to reason about interruptible code
+% in the kernel.
+
+
