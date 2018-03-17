@@ -99,7 +99,7 @@ by two new logical abstract primitives \emph{push} and \emph{pull}.
 The \emph{pull} operation modifies the ownership status of the memory block
 from ``free'' to ``owned by $c$'', while the \emph{push} operation frees back
 the ownership of the memory block, together with the updated memory.
-These two operations are abstracts all shared memory access at our
+These two operations abstract all shared memory access at our
 lowest machine model as atomic logical primitives that triggers corresponding
 \emph{push} and \emph{pull} events. 
 As described above, if a program tries to pull a non-free location, or tries to
@@ -124,7 +124,7 @@ environmental context $\oracle$, which is a partial map from a list of
 current global event log $l$ to another list of events $l'$ that corresponds
 to the list of observable events triggered by the CPUs outside $A$ at this
 interleaving point. We denote such concurrent layer interface $L$ parameterized by
-an active CPU set $A$ and environmental context $\orcale$ as
+an active CPU set $A$ and environmental context $\oracle$ as
 $\PLayer{L}{A}{\oracle}$.
 
 We encode our assumptions on the external world by
@@ -383,7 +383,7 @@ We make following two assumptions. Fist, the hardware scheduling transition
 is fair, i.e., there exists a number $h$ such that the nondeterministic execution is
 guaranteed to get back to the previous CPU within $h$ hardware steps.
 Second, every CPU who acquired the ticket lock released the lock within
-$r$ steps for some constant $r$. This is also a reasonable as if someone
+$r$ steps for some constant $r$. This is also a reasonable assumption because if someone
 holding the lock never releases the lock, no one else can ever obtain the lock
 again. Both of these assumptions are formally enforced by introducing
 them as layer invariants on the event list $l$.
@@ -472,6 +472,43 @@ specifications for $\acq$ and $\rel$ as in $L_3$ above.
 
 \section{Shared Queue Object}
 
+\begin{figure}[t]
+\lstinputlisting [language = C, multicols=2] {src/dequeue.c}
+\caption{Pseudocode of dequeue implementation.}
+\label{fig:exp:dequeue}
+\end{figure}
+
+Given that we have verified ``atomic'' lock acquire and release primitives,
+we can utilize these spinlocks to verify more useful concurrent
+data structures and programs. Shared queue is one of the widely used
+data structures used in concurrent programs like producer/consumer,
+scheduler, {\it etc}. 
+
+The specification of a shared queue object should provide a high level abstract
+interface by hiding all the low level details,
+to ease the verification of programs using the object.
+However, the large gap between this high level abstract specification
+and the low level efficient implementation makes the verification of the shared queue object
+itself extremely challenging.
+The previous verification technique for shared queue object~\cite{lili16}
+has to inline the lock implementation and duplicate the lock-related proofs, due
+to the lack of modular layered approach.
+
+Figure \ref{fig:exp:dequeue} shows the implementation of dequeue operation, where
+we represent the queue in terms of a doubly linked list. 
+As shown in the figure, we utilize an auxiliary function $\deq\comm{\_t}$ which
+performs the actual operations on the queue. The main function $\deq$ simply
+wraps $\deq\comm{\_t}$ with the lock acquire and release functions.
+To verify this shared queue, we first verify the $\deq\comm{\_t}$ function
+via the  \emph{fun-lift} pattern for sequential program, where the specification
+assumes that the lock is already held, thus no interleaved executions are possible
+in the middle of $\deq\comm{\_t}$. Then we utilize 
+the \emph{log-lift} pattern to introduce another layer for the main $\deq$ function
+where it simply generate one single $\deq$ event. This can be done by merging two
+queue-related lock acquire and release events underlay into a single $\deq$ event
+at the overlay. 
+
+
 \section{Supporting Multiple Virtual Machines}
 
 \subsection{Extending The Single VM Implementation}
@@ -480,6 +517,13 @@ specifications for $\acq$ and $\rel$ as in $L_3$ above.
 
 \section{Evaluation and Experience}
 \label{sec:kernel}
+
+\begin{figure*}[t]
+\centering
+\includegraphics[scale=.45]{figs/tool_chain}
+\caption{System architecture of the CCAL programming toolkit.}
+\label{fig:toolchain}
+\end{figure*}
 
 \begin{table}
 \begin{center}
