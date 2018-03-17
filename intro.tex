@@ -1,6 +1,65 @@
 An operating system (OS) kernel serves as the lowest level of any
 system software stack. The correctness of the OS kernel is the basis
-for that of the entire system. In a monolithic kernel, device drivers
+for that of the entire system.
+Despite being highly desired verification target, recent work
+has shown that the potential cost for verifying
+reasonably practical operating system could be 
+prohibitive~\cite{klein2009sel4,klein14}.
+
+To make formal verification of any of similar complex system software
+practical, we currently lack a unified language-based framework that allows us
+to formally express, untangle, and reason about the interdependent relationships
+among various components in complex system software like OS kernel.
+Formal verification, by nature, involves in at least two types of languages.
+Low level languages (like C or assembly) that are used to implement
+the actual system software, and rich specification languages used to specify
+various behaviors of the programs. The framework needs to support both
+kinds of languages in a unified system, and provide formal way of effectively
+reason about relationships between these two types of languages. In practice, many
+formal verification is done on separate models that are not directly connected to the
+actual running code. This would also mean that if the low level language contains
+both C and assembly language, it should also provide certified compilation service
+that can compile the corresponding C code and its specification down to equivalent
+assembly version that can be formally linked together with the code that is written
+and verified directly at the assembly level. 
+
+Furthermore, complex system software contains many different abstraction
+layers, where each layer implements its own functionality by calling into the
+interfaces of other lower level  layers, and expose a new abstract
+interface to outside. The clients of this library only ever look at the
+interface and their specification (normally written in natural language),
+and does not need to look into the actual internal implementation.
+This way, we often can keep various changes only local to the component,
+and replace one component easily with another one with similar interfaces.
+Despite abstraction layers are highly exercised in building complex
+system software, it has not been adapted into formal verification of proving
+those system software. We lack a framework that can allow us to discompose
+a complex system software into various small components across multiple
+abstraction layers, prove each part of the code in their most appropriate abstraction
+layers, formally compose the verified layers into bigger layer component with formal
+public interface such that we never need to look into the internal implementation of the layer,
+and makes it easy to replace one plugin with another component that has the same
+interface and also satisfies the same linking invariants.
+
+In this thesis, I present a novel compositional  framework that successfully
+tackles all of the above challenges in a unified way. The framework,
+which is implemented fully in Coq proof assistant, allows
+you to build hierarchy of certified abstraction layers that can be horizontally
+and vertically composed. It also provides a variant of C and assembly language
+that can be used for system implementation, the rich Coq logical language
+for specifying the behaviors of the programs, and a certified compiler that can compile
+the C code and proofs into equivalent assembly versions that can be formally linked
+with the ones obtained directly from assembly. It also contains powerful
+Coq tactic library that can be used to automate many aspect of the proofs.
+This framework is illustrated in
+detail in Chapter \ref{chapter:framework} and Chapter \ref{chapter:automation}.
+Under our framework, building a new certified kernel is the matter of
+composing a collection of certified layers. The framework has been used to
+construct a practical operating system kernel with rich features like virtual
+memory, process management, hardware virtualization, {\it etc}, which is
+presented in Chapter \ref{chapter:sequential}.
+
+In a monolithic kernel, device drivers
 form the majority of the code base; 70\% of the Linux 2.4.1 kernel are
 device drivers~\cite{Chou:2001}. Furthermore, such drivers are found
 to be the major source of crashes in the Linux and Windows operating
@@ -113,7 +172,7 @@ if some device driver code triggers a page fault at the user level,
 the behavior of the corresponding driver is linked to the behaviors of
 the page-fault handlers and address translation mechanism of the kernel.
 
-In this paper, we propose a novel compositional approach that tackles
+In this thesis, I also propose a novel compositional approach that tackles
 all of the above challenges. There are two key contributing ideas.
 One is to build up a certified ``virtual'' device hierarchy, and
 the other is a new abstract interrupt model, built upon a realistic
@@ -121,16 +180,11 @@ hardware interrupt model through contextual refinement. We use these
 to build an extensible framework that systematically enforces the
 isolation among different operating system modules, which is important
 for scalability of any verification effort and critical for reasoning
-about interruptible code.
+about interruptible code. The details are presented in Chapter \ref{chapter:driver}.
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% TODO: (1) revise the following list of contributions
-%       (2) a new statement about our contributions over Gu et al
-%       (3) outline of the rest of the paper
-%       (4) refer to a later section regarding limitations
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Our paper makes the following new contributions:
+
+This dissertation makes the following new contributions:
 \begin{itemize}
 \item We present a new extensible architecture for building certified
   OS kernels with device drivers. Instead of mixing the device drivers
@@ -161,24 +215,24 @@ Our paper makes the following new contributions:
   hardware.
 \end{itemize}
 
-The rest of this thesis is organized as follows.
-Chapter~\ref{chapter:framework} presents our abstraction-layer-based verification
-technology using a concrete example, while
-Chapter~\ref{chapter:automation} details the challenges and solutions to
-our automation engine for verifying C programs.
-In Chapter \ref{chapter:sequential}, we present the concrete Coq
-implementations of the mCertiKOS verified
-kernel using the techniques presented in the previous chapters.
-The framework is further extended in Chapter \ref{chapter:driver}
-to support modular reasoning of device drivers and interrupts.
-A modular framework that can further support shared-memory concurrency
-with fine-grained locking is presented in Chapter \ref{chapter:concurrent}.
-Then, the limitations of various frameworks are discussed in
-Chapter \ref{chapter:limitation}, and we discuss various important
-related works in Chapter \ref{chapter:related}, and finally conclude
-in Chapter \ref{chapter:conclusion}.
-
-\paragraph{My Contributions}
+%The rest of this thesis is organized as follows.
+%Chapter~\ref{chapter:framework} presents our abstraction-layer-based verification
+%technology using a concrete example, while
+%Chapter~\ref{chapter:automation} details the challenges and solutions to
+%our automation engine for verifying C programs.
+%In Chapter \ref{chapter:sequential}, we present the concrete Coq
+%implementations of the mCertiKOS verified
+%kernel using the techniques presented in the previous chapters.
+%The framework is further extended in Chapter \ref{chapter:driver}
+%to support modular reasoning of device drivers and interrupts.
+%A modular framework that can further support shared-memory concurrency
+%with fine-grained locking is presented in Chapter \ref{chapter:concurrent}.
+%Then, the limitations of various frameworks are discussed in
+%Chapter \ref{chapter:limitation}, and we discuss various important
+%related works in Chapter \ref{chapter:related}, and finally conclude
+%in Chapter \ref{chapter:conclusion}.
+%
+%\paragraph{My Contributions}
 The work described in this thesis is based on joint work with various members
 in the CertiKOS project.\footnote{http://flint.cs.yale.edu/certikos/}
 The author is one of the two critical contributors for developing the methodology

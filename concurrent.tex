@@ -550,8 +550,8 @@ Simulation library & 1,800 & Thread-safe CompCertX & 7,500\\
 \label{table:toolkit}
 \end{table}
 
-We have implemented the CCAL toolkit (see
-Fig. \ref{fig:toolchain}) in the Coq proof assistant. Table
+We have implemented the CCAL toolkit (see Fig. \ref{fig:toolchain}) in the Coq proof assistant. 
+Table
 \ref{table:toolkit} presents the number of lines (in Coq) for each component in Fig.~\ref{fig:toolchain}. The auxiliary library contains the common
 tactics and lemmas for 64 bit integers, lists, maps, integer
 arithmetic, {etc}.
@@ -595,10 +595,6 @@ Queuing lock & 112 & 255 & 992 & 328 & 464\\
 To evaluate the framework itself, we have implemented, specified, and verified various
 concurrent programs in the framework. Table \ref{table:evaluation} presents some of the
 statistics with respect to the implemented components.
-\ignore{ in terms of the number of lines of C \& assembly
-source code, the number of layers used to specify and verify the module, the size of the
-specification, and the number of lines
-(in Coq) used to perform the invariant proof, code proof, and refinement proof, respectively.}
 As for lock implementations,
 their source code contains not only
 the code of the associated functions,
@@ -618,7 +614,7 @@ Similarly, the queue is represented as a logical list in the specification,
 while it is implemented as a doubly linked list.
 
 Our development is compositional. Both ticket  and MCS locks share the same
-high-level atomic specifications (or strategies) shown in Sec.~\ref{sec:informal}.
+high-level atomic specifications.
 Thus the lock implementations can be freely interchanged without affecting any proof
 in the higher-level modules using locks. When implementing the shared queue library, we
 also reuse the implementation and proof of the sequential queue library:
@@ -629,17 +625,16 @@ atomic objects such as shared queues is relatively simple and does not require
 many lines of code.
 
 Following the same philosophy, 
-Gu et al. \cite{certikos-osdi16} has further extended our work with paging-based
+we have further extended our work with paging-based
 dynamically allocated virtual
 memory, device drivers with in-kernel interrupts, a synchronous inter-process
 communication (IPC) protocol using the queuing lock, a shared-memory IPC protocol with
-a shared page, and Intel hardware virtualization support;
-our CCAL toolkit was used to produce the world's
+a shared page, and Intel hardware virtualization support.
+We have used the toolkit to produce the world's
 first fully certified concurrent OS kernel
 with fine-grained locking. 
-\ignore{The entire kernel is reported to contain 6,500 lines
-of C and x86 assembly code, and the verification effort for the concurrent kernel
-is reported to be 2 person years.} 
+The entire kernel contains 6,500 lines
+of C and x86 assembly code.
 
 
 \ignore{
@@ -726,7 +721,7 @@ of C and x86 assembly code, and the verification effort for the concurrent kerne
 is reported to be 2 person years.} }
 
 \para{Performance Evaluation} 
-\ignore{The verification should not by any means hinder the performance.
+The verification should not by any means hinder the performance.
 One benefit of the layered approach is that
 concrete and highly optimized (and thus complex) implementations can be abstracted
 into much simpler logical specifications that are easier to reason about.
@@ -734,7 +729,7 @@ In our toolkit, the verified source code (both C and assembly) are encoded as
 abstract syntax trees in Coq, while CompCertX is written directly in
 Coq. We then use Coq's extraction mechanism to produce a program which
 compiles the C source code and outputs a single piece of assembly code
-for the system. The resulting code is efficient.}
+for the system. The resulting code is efficient.
 We have measured the performance
 of the ticket lock on an Intel 4-Core i7-2600S (2.8GHz) processor with 16GB memory.
 Initially, the ticket lock implementation incurred a latency of 87 CPU cycles in the
@@ -743,10 +738,6 @@ After a short investigation, we found that we forgot to remove some function cal
 to ``logical primitives'' used for manipulating ghost abstract states. After we removed
 these extra null calls, the latency dropped down to only 35 CPU cycles.
 %%%
-Gu et al. \cite{certikos-osdi16} also presented performance
-evaluations of their OS kernel built using CCAL.
-They show that the MCS lock implementation scales better with more cores.
-Additionally, they show that their kernel with fine-grained locking
-performs significantly better than that with 
-a big-kernel-lock implementation. The hypervisor performance is
-also reported to be comparable to that of KVM.
+We have also benchmarked the performance of various aspect of verified concurrent kernel,
+by comparing it with the big-kernel-lock implementation, and comparing its hypervisor
+performance with that of KVM \cite{Gu:2016}.
