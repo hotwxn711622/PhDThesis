@@ -182,7 +182,40 @@ isolation among different operating system modules, which is important
 for scalability of any verification effort and critical for reasoning
 about interruptible code. The details are presented in Chapter \ref{chapter:driver}.
 
+Last not the least, majority of recent OS kernels are running on multiple CPUs and supports
+multiple threads.   Recent
+efforts~\cite{klein2009sel4,hawblitzel10,klein14,ironclad14,fscq15,cogent16}
+have shown that it is feasible to formally prove the functional
+correctness of simple general-purpose kernels, file systems,
+and device drivers. However, none of these systems have addressed the
+important issues of concurrency~\cite{kaashoek15,ospp11}
+Through our work on device drivers and interrupts, even though
+we are able to reason about some limited form of concurrency between the kernel and
+devices, efficient reasoning on arbitrary concurrent executions among various
+interdependent components in a complex system like OS kernel is considered
+intractable by some researchers~\cite{vontessin13,peters15}. 
+In order to reason about concurrent programs effectively, we first need to write
+effective specifications. For example, for an operation to a concurrent object whose
+access is protected by a lock, even though there can be many interleaved executions
+in the middle of the operation, the operation is considered ``atomic'', and this
+information should be reflected in a good abstract specification, i.e.,
+the specification should also be atomic. The reasoning framework should also support
+local reasoning of concurrent programs, e.g., we should be able to reason about
+each thread locally by making appropriate assumptions on its partnering threads,
+and later merge all the proofs together to obtain a properly about the entire
+concurrent program when they all gets executed together. To do this, it is important
+that the framework is able to prove that each of the system calls eventually returns,
+which is dependent both on the progress and behavior of current and other programs
+running on the machine.
 
+We have further extended our layered framework to support the certified
+concurrent abstraction layers. Here, we have a very effective way of representing
+states shared by processes running on other CPUs, and enforcing invariants on
+the current process, and assumptions on the other processes. Using this framework,
+we have successfully verified common spinlock implementations with effective
+atomic specifications for their lock acquire and release operations, and further utilize
+the verified locks to implement other concurrent part of the kernel.
+This line of work is detailed in Chapter \ref{chapter:concurrent}.
 
 This dissertation makes the following new contributions:
 \begin{itemize}
@@ -248,15 +281,3 @@ extension to the framework to reason about device drivers and interrupts
 of the log-based approach on reasoning
 concurrent programs (illustrated in Chapter \ref{chapter:concurrent}). 
 
-\ignore{
-Chapter \ref{chapter:concurrent}
-briefly explains the ideas of certified concurrent abstraction layers
-and presents some of the key components the author contributed
-for the verified concurrent kernel: verification of ticket lock algorithm,
-and extending the verified hypervisor to support multiple virtual machines
-(one virtual machine on each CPU core). 
-the hardware device models and verification of the device
-driver C source code using the automation engines the author developed,
-proving the refinement of
-layer interfaces and interrupt models and the driver implemented in assembly. 
-}
