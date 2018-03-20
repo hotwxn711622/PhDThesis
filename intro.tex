@@ -209,17 +209,57 @@ which is dependent both on the progress and behavior of current and other progra
 running on the machine.
 
 We have further extended our layered framework to support the certified
-concurrent abstraction layers. Here, we have a very effective way of representing
-states shared by processes running on other CPUs, and enforcing invariants on
-the current process, and assumptions on the other processes. Using this framework,
+concurrent abstraction layers. We have a very effective way of representing
+states shared among processes running on other CPUs, and enforcing invariants on
+the current process, and assumptions on the other processes. This way, it allows
+us to formally verify the code running on each processes separately, and later
+link the code and proofs together when they satisfy each other assumptions,
+to obtain global properties on entire system when the processes are run in parallel.
+Using this framework,
 we have successfully verified common spinlock implementations with effective
 atomic specifications for their lock acquire and release operations, and further utilize
-the verified locks to implement other concurrent part of the kernel.
+the verified locks to implement other concurrent components of the kernel.
 This line of work is detailed in Chapter \ref{chapter:concurrent}.
 
 This dissertation makes the following new contributions:
 \begin{itemize}
-\item We present a new extensible architecture for building certified
+\item We present the first language-based framework for systematically
+building hierarchy of certified abstraction layers used widely in the system
+community. Each certified layer interface not only specifies precise functionality
+of underlying implementation, but also clear assumptions about its client context.
+The framework allows us to effectively decompose otherwise complex
+artifacts into many different abstraction layers, and provides system level support
+for formally specifying, programming, and verifying the layer components,
+and more importantly, compose the components into a bigger abstraction layers.
+
+\item In the framework, we provide both a variant of C language (ClightX),
+and an x86 assembly language, and a modified version of CompCert verified
+compiler that can compile the code and proofs regarding ClightX into
+the equivalent ones in assembly. We have implemented (in Coq) strong
+automation tactics that can be used to semi-automatically prove the
+ClightX code against their specifications, and tactics for proving refinement
+properties across various proof patterns.
+
+\item Using these new tools, we have successfully constructed a
+practical feature-rich certified OS kernels with virtual memory,
+thread/process management, hardware assisted virtualization,
+and trap handlers. It can run on stock x86 multicore machines
+and also could double as a hypervisor and boot a version of Linux as guest.
+The certified kernel is built through 35 logical
+abstraction layers, and turn
+an otherwise prohibitive verification task into many simple
+and easily automatable sub-tasks.
+The certified
+kernel provides the actual assembly implementation running on the
+actual hardware, abstract high level specifications of the kernel,
+and machine checkable proof stating that for every kernel or user
+program $P$, any properly of $P$ over the kernel specification
+is preserved when running the $P$ linked with the kernel assembly
+implementation.  The entire specification and verification
+effort took less than 2 person years.
+
+\item We have extended the framework further into a new extensible
+architecture for building certified
   OS kernels with device drivers. Instead of mixing the device drivers
   with the rest of the kernel (since they both run on the same
   physical CPU), we treat the device drivers for each device as if
@@ -246,6 +286,22 @@ This dissertation makes the following new contributions:
   proof assistant~\cite{coq}), yet the machine-checkable proofs verify the
   correctness of the assembly code that can run on the actual
   hardware.
+  
+\item We have developed an effective event-based framework for representing
+shared states, and further extended existing framework into an architecture
+for building certified concurrent OS kernels. The framework utilizes contextual
+refinement over the concurrent environmental contexts as the unifying formalism
+for component various concurrent objects at different abstraction levels. 
+The environmental context allows us to make proper assumptions over
+other concurrent processes, and enables us to be able to reuse majority
+of standard verification techniques we have developed for verifying sequential programs.
+
+\item Using the new framework, we have successfully developed fully certified
+concurrent OS kernel with fine grained locking. The concurrent kernel
+consists of 6,500 lines of C and assembly code, runs on stock x86 multicore machines,
+and doubles as a hypervisor and boot multiple instances of Linux as guest on different
+CPUs. To the best of our knowledge, this is the first fully verified general-purpose concurrent
+OS kernel with fine-grained locking.
 \end{itemize}
 
 %The rest of this thesis is organized as follows.
