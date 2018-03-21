@@ -10,18 +10,19 @@ To make formal verification of any of similar complex system software
 practical, we currently lack a unified language-based framework that allows us
 to formally express, untangle, and reason about the interdependent relationships
 among various components in complex system software like OS kernel.
-Formal verification, by nature, involves in at least two types of languages.
+Formal verification, by nature, involves at least two types of languages.
 Low level languages (like C or assembly) that are used to implement
 the actual system software, and rich specification languages used to specify
 various behaviors of the programs. The framework needs to support both
 kinds of languages in a unified system, and provide formal way of effectively
 reason about relationships between these two types of languages. In practice, many
 formal verification is done on separate models that are not directly connected to the
-actual running code. This would also mean that if the low level language contains
-both C and assembly language, it should also provide certified compilation service
+actual running code. In addition, if the low level language contains
+both C and assembly language, the framework should also provide certified compilation service
 that can compile the corresponding C code and its specification down to equivalent
 assembly version that can be formally linked together with the code that is written
-and verified directly at the assembly level. 
+and verified directly at the assembly level. This way, we can guarantee that the proved
+properties can be certifiably transferred down to the actual assembly code running on the hardware.
 
 Furthermore, complex system software contains many different abstraction
 layers, where each layer implements its own functionality by calling into the
@@ -32,7 +33,7 @@ and does not need to look into the actual internal implementation.
 This way, we often can keep various changes only local to the component,
 and replace one component easily with another one with similar interfaces.
 Despite abstraction layers are highly exercised in building complex
-system software, it has not been adapted into formal verification of proving
+system software, it has not been adapted into verification of
 those system software. We lack a framework that can allow us to discompose
 a complex system software into various small components across multiple
 abstraction layers, prove each part of the code in their most appropriate abstraction
@@ -44,7 +45,7 @@ interface and also satisfies the same linking invariants.
 In this thesis, I present a novel compositional  framework that successfully
 tackles all of the above challenges in a unified way. The framework,
 which is implemented fully in Coq proof assistant, allows
-you to build hierarchy of certified abstraction layers that can be horizontally
+us to build hierarchy of certified abstraction layers that can be horizontally
 and vertically composed. It also provides a variant of C and assembly language
 that can be used for system implementation, the rich Coq logical language
 for specifying the behaviors of the programs, and a certified compiler that can compile
@@ -183,7 +184,7 @@ for scalability of any verification effort and critical for reasoning
 about interruptible code. The details are presented in Chapter \ref{chapter:driver}.
 
 Last not the least, majority of recent OS kernels are running on multiple CPUs and supports
-multiple threads.   Recent
+multiple concurrent threads.   Recent
 efforts~\cite{klein2009sel4,hawblitzel10,klein14,ironclad14,fscq15,cogent16}
 have shown that it is feasible to formally prove the functional
 correctness of simple general-purpose kernels, file systems,
@@ -203,7 +204,7 @@ the specification should also be atomic. The reasoning framework should also sup
 local reasoning of concurrent programs, e.g., we should be able to reason about
 each thread locally by making appropriate assumptions on its partnering threads,
 and later merge all the proofs together to obtain a properly about the entire
-concurrent program when they all gets executed together. To do this, it is important
+concurrent program when they all gets executed together. It is also important
 that the framework is able to prove that each of the system calls eventually returns,
 which is dependent both on the progress and behavior of current and other programs
 running on the machine.
@@ -217,9 +218,11 @@ link the code and proofs together when they satisfy each other assumptions,
 to obtain global properties on entire system when the processes are run in parallel.
 Using this framework,
 we have successfully verified common spinlock implementations with effective
-atomic specifications for their lock acquire and release operations, and further utilize
-the verified locks to implement other concurrent components of the kernel.
-This line of work is detailed in Chapter \ref{chapter:concurrent}.
+atomic specifications for their lock acquire and release operations, and have further utilized
+the verified locks to build other verified concurrent components. 
+This led us, to the best of our knowledge, the first fully verified general-purpose
+concurrent OS kernel with fine-grained locking.
+This line of work is presented in Chapter \ref{chapter:concurrent}.
 
 This dissertation makes the following new contributions:
 \begin{itemize}
@@ -243,10 +246,10 @@ properties across various proof patterns.
 \item Using these new tools, we have successfully constructed a
 practical feature-rich certified OS kernels with virtual memory,
 thread/process management, hardware assisted virtualization,
-and trap handlers. It can run on stock x86 multicore machines
-and also could double as a hypervisor and boot a version of Linux as guest.
+and trap handlers. It runs on stock x86 machines
+and could also double as a hypervisor and boot a version of Linux as guest.
 The certified kernel is built through 35 logical
-abstraction layers, and turn
+abstraction layers, turning
 an otherwise prohibitive verification task into many simple
 and easily automatable sub-tasks.
 The certified
@@ -291,15 +294,15 @@ architecture for building certified
 shared states, and further extended existing framework into an architecture
 for building certified concurrent OS kernels. The framework utilizes contextual
 refinement over the concurrent environmental contexts as the unifying formalism
-for component various concurrent objects at different abstraction levels. 
+for composing various concurrent objects at different abstraction levels. 
 The environmental context allows us to make proper assumptions over
-other concurrent processes, and enables us to be able to reuse majority
+other concurrent processes, and enables us to reuse majority
 of standard verification techniques we have developed for verifying sequential programs.
 
 \item Using the new framework, we have successfully developed fully certified
 concurrent OS kernel with fine grained locking. The concurrent kernel
 consists of 6,500 lines of C and assembly code, runs on stock x86 multicore machines,
-and doubles as a hypervisor and boot multiple instances of Linux as guest on different
+and doubles as a hypervisor and boots multiple instances of Linux as guest on different
 CPUs. To the best of our knowledge, this is the first fully verified general-purpose concurrent
 OS kernel with fine-grained locking.
 \end{itemize}

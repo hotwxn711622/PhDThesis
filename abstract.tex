@@ -2,16 +2,46 @@ An operating system (OS) kernel forms the lowest level of any system
 software stack. The correctness of the OS kernel is the basis for the
 correctness of the entire system. Recent efforts have demonstrated the
 feasibility of building formally verified general-purpose kernels, but
+the cost of such verification is still prohibitive. Furthermore,
 it is unclear how to extend their work to verify the functional
 correctness of device drivers, due to the non-local effects of
-interrupts. In this paper, we present a novel compositional framework
-for building certified interruptible OS kernels with device
-drivers. We provide a general device model that can be instantiated
+interrupts. Last not the least,  
+complete formal verification of a non-trivial concurrent
+OS kernel is widely considered a grand challenge, and
+none of these systems have addressed
+the issues of concurrency, despite the fact that majority
+of OS kernels run on multicore machine nowadays.
+
+This thesis presents a novel compositional framework
+for building certified interruptible and concurrent OS kernels with device
+drivers. We present formal study of abstraction layers, where
+each abstraction layer specifies the precise functionality
+of underlying implementation with clear assumptions about its
+external context. The framework provides
+systematic ways of verifying complex system software like OS kernel,
+by specifying, programming, verifying, and composing the abstraction
+layers. To support device drivers and interrupts,
+we provide a general device model that can be instantiated
 with various hardware devices, and a realistic formal model of
-interrupts, which can be used to reason about interruptible code. We
-have realized this framework in the Coq proof assistant. To
-demonstrate the effectiveness of our new approach, we have
-successfully extended an existing verified non-interruptible kernel
-with our framework and turned it into an interruptible kernel with
-verified device drivers. To the best of our knowledge, this is the
-first verified interruptible operating system with device drivers.
+interrupts, which can be used to reason about interruptible code. 
+For concurrency, we have a novel event based model for representing
+shared states,
+which allows us to verify each process locally by 
+making proper assumptions over other processes, and later
+merge all individual proofs together to obtain global properties
+across the entire concurrent system.
+
+To demonstrate the effectiveness of our new approach, we have
+successfully developed a practical concurrent operating system
+kernel in our framework.
+The kernel consists of 6,500 lines of C and assembly code, runs on stock
+x86 multicore machines, and doubles as a hypervisor and boots multiple instances
+of Linux as guest on different CPUs. 
+The implementation, modeling, specification, and
+  proofs are all done in a unified framework (realized in the Coq
+  proof assistant), yet the machine-checkable proofs verify the
+  correctness of the assembly code that runs on the actual
+  hardware.
+To the best of our knowledge, this is the first framework with support
+on end-to-end verification of low level OS kernel with device drivers,
+interrupts, and fine-grained concurrency, in a unified framework.
