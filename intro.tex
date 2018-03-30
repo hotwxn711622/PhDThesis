@@ -1,3 +1,79 @@
+While safety critical software are often designed and tested with extra efforts, testing cannot
+prove the absence of bugs. Formal verification, despite known as the only way of building
+bug-free software system, has not been exercised widely in practice due to its complexity and cost.
+Verification of reasonably complex system software is known to be extremely more complex and
+costly than the development of the software itself~\cite{klein2009sel4,klein14}.
+
+This dissertation aims to provide a very effective and accessible way of proving practical low level
+system software. To achieve this, we need to tackle several main challenges.
+
+First, complex system software consist of highly interdependent subsystems, which makes it
+difficult to reason about each small component locally. Separation logic is one of most commonly
+used tools to reason about the isolation of data structures in the memory
+\cite{appel07:tphols,Tuch:2009}. Yet it still provides much overhead and hinders opportunities
+for automation in proving the main functional correctness of the piece of program by mixing this
+logic with the proofs of isolation.
+
+Next, majority of the traditional verification efforts on proving system software go into proving
+invariant preservation properties~\cite{klein14}. Invariants are known to be very expensive
+because we not only need to prove that it is preserved by the local function in consideration,
+but also for the whole system, i.e., we need to show that the invariants is preserved at any
+moment of the whole system execution and cannot be accidentally broken by any functions
+in the system, e.g., through pointer manipulation. Even worse, in practice, we normally do
+have functions that temporarily breaks the invariant. For example, an operation to a data structure
+that well preserves the invariants could be implemented with multiple auxiliary functions, where
+each of these functions temporarily violates the invariants. Traditional verification approaches
+do not have a very effective and systematic way of tackling this challenge.
+
+In this thesis, we present simple, yet very powerful automation engine for effectively
+verifying complex system software. It is simple because it is only used to reason
+about functional correctness of C source programs, and takes the isolation
+and invariant properties as given.
+We believe that the aforementioned challenges are not directly tied to the verification
+of the function correctness itself, and we think the automation engine should focus solely
+on providing
+very strong automation support for proving the functional correctness of each system component,
+completely separate from reasoning of isolation and invariants.
+
+Instead of letting the main functional correctness proof handle the low level
+isolation at the memory level,  we provide a systematic approach to abstract in-memory
+data structure into equivalent logical abstract states where the isolation is guaranteed,
+such that our automation engine only focuses on the functional correctness.
+For every in-memory data structure, before we verify the corresponding functions operating
+on the data, we first develop a new equivalent machine where the in-memory data is gone but replaced
+with a logical abstract state. This new machine provides very basic read/write primitives to this
+abstract states which are implemented by simple getter/setter functions in the original machine.
+These two machines, what we call {\it abstraction layers}, are proved to be {\it contextually equivalent},
+where any program running on the more abstract machine would remain the same behavior when it gets
+linked with the memory getter/setter code and  run on the other machine.
+At the newer abstraction layer, the read/write primitives are the only way to access the new abstract
+states, thus the abstract states are completely isolated from the rest of in-memory data and other
+abstract states, and cannot be accessed by other primitives or memory operations.
+The actual functions, which are implemented on top of the new abstraction layer
+using the new read/write primitives, can be verified
+effectively with our automation engine completely at logical level, and no longer needs to deal with
+low level memory or isolation. Here, a new abstraction layer is developed where the verified
+functions are turned into logical primitives with their specifications, and new functions can be
+further verified on top of this new abstraction layer.
+
+As we abstract each in-memory data structures into logical abstract states, our system invariants
+are also expressed in terms of the abstract states. At every abstraction layer, we separately
+prove that all the primitives in this layer satisfy all the invariants in this layer. Given that these
+primitives are the only way to access the abstract states, by design, we know that any piece of
+code running on this abstract machine model would not break the invariants. 
+Different abstract states are isolated by design, thus by design, primitives operating on one abstract
+state would not violate invariants imposed on other abstract states.
+Furthermore, each
+layer could have different sets of invariants, thus we no longer need to introduce entire system
+invariants at once, but introduce them gradually at the most appropriate abstraction level.
+For example, when we only have auxiliary list operations that break the list integrity invariants,
+we can postpone introducing this invariants until we get to the layer where we have already
+verified the full function that gracefully operates on this list preserving the invariants.
+The intermediate auxiliary primitives that are no longer needed are removed from the new abstraction
+layer to avoid unnecessary invariants proof.
+
+
+\ignore{
 An operating system (OS) kernel serves as the lowest level of any
 system software stack. The correctness of the OS kernel is the basis
 for that of the entire system.
@@ -59,6 +135,14 @@ composing a collection of certified layers. The framework has been used to
 construct a practical operating system kernel with rich features like virtual
 memory, process management, hardware virtualization, {\it etc}, which is
 presented in Chapter \ref{chapter:sequential}.
+}
+
+As a case study, we have successfully verified a practical single-core
+operating system kernel with rich features like virtual
+memory, process management, hardware virtualization, {\it etc}.
+The proof is achieved semi-automatically with our automation
+engine implemented in Coq proof assistant and the entire proof
+effort took less one person year.
 
 In a monolithic kernel, device drivers
 form the majority of the code base; 70\% of the Linux 2.4.1 kernel are
@@ -325,6 +409,8 @@ OS kernel with fine-grained locking.
 %in Chapter \ref{chapter:conclusion}.
 %
 %\paragraph{My Contributions}
+
+\ignore{
 The work described in this thesis is based on joint work with various members
 in the CertiKOS project.\footnote{http://flint.cs.yale.edu/certikos/}
 The author is one of the two critical contributors for developing the methodology
@@ -339,4 +425,5 @@ extension to the framework to reason about device drivers and interrupts
 (detailed in Chapter \ref{chapter:driver}), and a critical contributor
 of the log-based approach on reasoning
 concurrent programs (illustrated in Chapter \ref{chapter:concurrent}). 
+}
 
