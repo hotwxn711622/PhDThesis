@@ -1,6 +1,6 @@
 
-In this chapter, I show how we extend our layer-based framework to support
-verification of a concurrent kernel with fine grained locking.
+In this chapter, I show how we extend our engine to support
+verification of concurrent programs with fine grained locking.
 As illustrated in Chapter \ref{chapter:driver}, our definition of
 certified abstraction layers do not directly work with concurrent programs,
 as the contextual refinement between the specification and implementation
@@ -13,8 +13,8 @@ interleaved executions in the specifications themselves.
 
 Thus, we need a way to effectively represent the shared states among programs
 on different CPUs, and the non-deterministic accesses to these shared
-states. Ideally, we would also want to reuse as much framework and techniques
-that we have built for verification of sequential programs as possible.
+states. We would also want to reuse all the techniques
+that we have built for verification of sequential programs.
 Recall that we have successfully handled some limited form of concurrency
 between the devices and a sequential program in Chapter \ref{chapter:driver}.
 There, we have developed a new machine model, where the devices are treated
@@ -179,7 +179,7 @@ abstraction layers. First, we use \emph{fun-lift} pattern to abstract shared
 physical memory into shared abstract states, and specify and verify the
 concurrent functions with these abstract states, in a way very similar to
 how we build the sequential layers. Note that this process does not change
-any potentially interleavings in the programming executions, and each shared
+any potential interleavings in the programming executions, and each shared
 operation is specified by querying the environmental context to obtain the
 external event list at every interleaving point, i.e., our primitive specifications
 are no longer atomic as their behavior depends on other concurrent programs' behavior
@@ -407,6 +407,7 @@ apart of concurrency is that the ticket in the specification increases
 monotonically, while in the implementation, we have to use finite precision
 integers that wraps back to zero when it reaches the maximum. Thus, as you
 see in the implementation, we use the $!=$ operator instead of $<=$.
+\newman{Add verification details here with concrete invariants}
 
 \vspace{3pt}
 \noindent\textbf{Step 3 (atomic specification $L_2$)}
