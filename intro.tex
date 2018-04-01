@@ -20,7 +20,7 @@ because we not only need to prove that it is preserved by the local function in 
 but also for the whole system, i.e., we need to show that the invariants is preserved at any
 moment of the whole system execution and cannot be accidentally broken by any functions
 in the system, e.g., through pointer manipulation. Even worse, in practice, we normally do
-have functions that temporarily breaks the invariant. For example, an operation to a data structure
+have functions that temporarily break the invariants. For example, an operation to a data structure
 that well preserves the invariants could be implemented with multiple auxiliary functions, where
 each of these functions temporarily violates the invariants. Traditional verification approaches
 do not have a very effective and systematic way of tackling this challenge.
@@ -30,7 +30,7 @@ verifying complex system software. It is simple because it is only used to reaso
 about functional correctness of C source programs, and takes the isolation
 and invariant properties as given.
 We believe that the aforementioned challenges are not directly tied to the verification
-of the function correctness itself, and we think the automation engine should focus solely
+of the functional correctness itself, and we think the automation engine should focus solely
 on providing
 very strong automation support for proving the functional correctness of each system component,
 completely separate from reasoning of isolation and invariants.
@@ -61,14 +61,14 @@ are also expressed in terms of the abstract states. At every abstraction layer, 
 prove that all the primitives in this layer satisfy all the invariants in this layer. Given that these
 primitives are the only way to access the abstract states, by design, we know that any piece of
 code running on this abstract machine model would not break the invariants. 
-Different abstract states are isolated by design, thus by design, primitives operating on one abstract
+Different abstract states are isolated, thus by design, primitives operating on one abstract
 state would not violate invariants imposed on other abstract states.
 Furthermore, each
 layer could have different sets of invariants, thus we no longer need to introduce entire system
 invariants at once, but introduce them gradually at the most appropriate abstraction level.
 For example, when we only have auxiliary list operations that break the list integrity invariants,
-we can postpone introducing this invariants until we get to the layer where we have already
-verified the full function that gracefully operates on this list preserving the invariants.
+we can postpone introducing this invariants until we get to the layer where we have
+verified the full functions that gracefully operate on the list preserving the invariants.
 The intermediate auxiliary primitives that are no longer needed are removed from the new abstraction
 layer to avoid unnecessary invariants proof.
 
@@ -137,13 +137,15 @@ memory, process management, hardware virtualization, {\it etc}, which is
 presented in Chapter \ref{chapter:sequential}.
 }
 
-As a case study, we have successfully verified a practical single-core
+To experiment the effectiveness of our automation engine, 
+we have successfully verified a practical single-core
 operating system kernel with rich features like virtual
 memory, process management, hardware virtualization, {\it etc}.
 The proof is achieved semi-automatically with our automation
 engine implemented in Coq proof assistant and the entire proof
 effort took less one person year.
 
+\ignore{
 In a monolithic kernel, device drivers
 form the majority of the code base; 70\% of the Linux 2.4.1 kernel are
 device drivers~\cite{Chou:2001}. Furthermore, such drivers are found
@@ -165,12 +167,25 @@ eliminate bugs in its user-level drivers.
 % Furthermore, they put many restrictions on the devices they can
 % verify, many of which are not satisfied by a large number of
 % existing devices.
+}
 
+Though we find our automation engine to be particularly suitable for verifying
+complex low level system software, there are certain common aspects that
+require our special attention. Device drivers are one of them.
+In practical system software, device drivers often form a very large component
+of the entire code base; 70\% of the Linux 2.4.1 kernel are
+device drivers~\cite{Chou:2001}.
+Furthermore, such drivers are found
+to be the major source of crashes~\cite{Chou:2001,Ball:2006,Ganapathi:2006}
+On the other hand, it is not obvious how to extend our automation engine
+to effectively support verification of device drivers.
 A major challenge in driver verification is the interrupt: a non-local
-jump to some driver code, triggered by a device. When device drivers
+jump to some driver code, triggered by a device. 
+\ignore{When device drivers
 are implemented inside the kernel (for better performance), the kernel
 should be interruptible; otherwise, it can lead to an unacceptable
-interrupt processing latency.  Reasoning about interruptible code is
+interrupt processing latency. }
+Reasoning about interruptible code is
 particularly challenging, since every fine-grained processor step
 could contain a non-local jump, and, upon return, the machine state
 could be substantially changed. Even worse, it is not clear how such
@@ -191,7 +206,7 @@ These issues have been overlooked in past work, where
 interrupt controllers are assumed to be properly initialized and
 their drivers are correctly implemented~\cite{Alkassar:VSTTE08-225}.
 
-Finally, verifying an interruptible operating system with device
+Finally, verifying an interruptible system software with device
 drivers also faces the following challenges.
 
 {\em Devices and CPU run in parallel.} Thus, the executions of CPU
@@ -240,7 +255,7 @@ the assembly-level proofs.
 %
 {\em The correctness results of different components should be
 integrated formally.} For example, the correctness proofs of device
-drivers and the OS kernel
+drivers and the rest of system
 % , both written in a combination of C and assembly,
 need to be formally linked as an integrated system,
 before one can deliver formal guarantees on the OS as a whole. Not
@@ -250,35 +265,69 @@ a scenario which introduced actual bugs in previous verification
 efforts as reported by Yang and Hawblitzel~\cite{hawblitzel10}. Unfortunately,
 this formal linking process was found to be even more challenging than
 the correctness proofs of individual modules
-themselves~\cite{Alkassar:VSTTE08-225}. Even OS's with user-level
+themselves~\cite{Alkassar:VSTTE08-225}. 
+\ignore{Even OS's with user-level
 device drivers can suffer if the correctness proofs of their drivers are not
 formally linked with those of the kernel. For example,
 if some device driver code triggers a page fault at the user level,
 the behavior of the corresponding driver is linked to the behaviors of
-the page-fault handlers and address translation mechanism of the kernel.
+the page-fault handlers and address translation mechanism of the kernel.}
 
-In this thesis, I also propose a novel compositional approach that tackles
-all of the above challenges. There are two key contributing ideas.
-One is to build up a certified ``virtual'' device hierarchy, and
-the other is a new abstract interrupt model, built upon a realistic
-hardware interrupt model through contextual refinement. We use these
-to build an extensible framework that systematically enforces the
-isolation among different operating system modules, which is important
+Following our mantra, we isolate all above challenges from our main
+functional correctness proof such that we can reuse all the techniques
+we have developed above for effective verification of device drivers.
+To reason about isolation among concurrent devices and the other parts
+of the system, we build up a certified ``virtual'' device hierarchy where
+the isolation among different ``devices'' are guaranteed by design.
+For effective reasoning of interruptible code, we build a new abstract
+interrupt model, built upon a realistic
+hardware interrupt model through contextual refinement.
+As a result, we have built an effective system that systematically enforces the
+isolation among different system modules, which is important
 for scalability of any verification effort and critical for reasoning
-about interruptible code. The details are presented in Chapter \ref{chapter:driver}.
+about interruptible code. 
+We have successfully used these techniques to build world's first fully verified
+interruptible OS kernel with device drivers.
+The details are presented in Chapter \ref{chapter:driver}.
 
-Last not the least, majority of recent OS kernels are running on multiple CPUs and supports
-multiple concurrent threads.   Recent
-efforts~\cite{klein2009sel4,hawblitzel10,klein14,ironclad14,fscq15,cogent16}
-have shown that it is feasible to formally prove the functional
-correctness of simple general-purpose kernels, file systems,
-and device drivers. However, none of these systems have addressed the
-important issues of concurrency~\cite{kaashoek15,ospp11}
+Last not the least, many system software run on multiple CPUs with
+multiple concurrent threads.   
 Through our work on device drivers and interrupts, even though
 we are able to reason about some limited form of concurrency between the kernel and
 devices, efficient reasoning on arbitrary concurrent executions among various
-interdependent components in a complex system like OS kernel is considered
+interdependent components in a complex low level system is considered
 intractable by some researchers~\cite{vontessin13,peters15}. 
+In concurrent programs, the accesses to the shared states are protected, either by
+locks or via lock-free algorithms. On the other hand, in developers' mind, these accesses
+are considered ``atomic'', and this atomicity needs to be reflected in any good specifications.
+When we reason about these concurrent programs, the challenges come from the fact
+that we need to consider all possible interleaved executions between the current program
+and any unknown potential environment programs, and prove that even with all these interleaved
+executions, the concurrent accesses can be safely shuffled such that we can view as if
+the current program accesses the shared states atomically, and this behavior is observably
+equivalent to the original interleaved executions.
+
+Again, following our mantra, we have developed an effective way of representing the states
+shared among multiple concurrent programs, and expressing the invariants on the current program
+and assumptions for other concurrent programs. While we continue to abstract private in-memory
+states into logical abstract states, the shared states are represented instead as list of global
+observable I/O events, where actual states can be inferred given the list of events. Thus, the operations
+on the shared states by the current program are specified as appending corresponding events to the
+global external log list. The operations on the shared states by other concurrent programs are encapsulated
+into {\it environmental context}, which specifies the shared state change by providing a list of events
+generated by other concurrent programs, given the current event list.
+By achieving the proof under all possible environmental context, we could conclude that
+the verified property holds for any possible interleaved executions among the concurrent programs.
+On the actual verification of functional correctness, we always assume all the accesses to the shared
+states are protected, e.g., the lock is already held, such that we no longer need to reason about interleavings
+during the code verification. The reasoning of interleaved executions are done as a separate next step,
+again at completely logical level.
+This allows us to effectively reuse all the
+verification techniques we have developed so far to verify each concurrent program, and effectively
+combine the reasoning into global properties on the merged concurrent programs.
+This line of work is presented in Chapter \ref{chapter:concurrent}.
+
+\ignore{
 In order to reason about concurrent programs effectively, we first need to write
 effective specifications. For example, for an operation to a concurrent object whose
 access is protected by a lock, even though there can be many interleaved executions
@@ -306,10 +355,26 @@ atomic specifications for their lock acquire and release operations, and have fu
 the verified locks to build other verified concurrent components. 
 This led us, to the best of our knowledge, the first fully verified general-purpose
 concurrent OS kernel with fine-grained locking.
-This line of work is presented in Chapter \ref{chapter:concurrent}.
+}
 
 This dissertation makes the following new contributions:
 \begin{itemize}
+\item We present a novel, simple, but extremely powerful automation engine
+for verifying C source code against their specifications. Unlike traditional
+verification approaches for verifying C programs mixing the proof of isolation
+and preservation of invariants into the reasoning of functional correctness,
+our automation engine takes the isolation and invariants as given, and we have
+separate mechanisms to guarantee isolation and prove the invariants.
+This allows us to provide very strong automation support focusing solely on
+proving the functional correctness of each function.
+To prove the effectiveness of our approach, using the new tools, we have
+successfully constructed a fully verified
+practical feature-rich certified OS kernels, which runs
+on stock x86 hardware and doubles as a hypervisor and boots a version of Linux as guest.
+We managed to achieve the full specification and verification of the kernel within
+2 person years.
+
+\ignore{
 \item We present the first language-based framework for systematically
 building hierarchy of certified abstraction layers used widely in the system
 community. Each certified layer interface not only specifies precise functionality
@@ -344,11 +409,13 @@ program $P$, any properly of $P$ over the kernel specification
 is preserved when running the $P$ linked with the kernel assembly
 implementation.  The entire specification and verification
 effort took less than 2 person years.
+}
 
-\item We have extended the framework further into a new extensible
-architecture for building certified
-  OS kernels with device drivers. Instead of mixing the device drivers
-  with the rest of the kernel (since they both run on the same
+\item We have extended the engine with novel way of representing
+devices and drivers, to effectively reason about system software
+with device drivers.
+Instead of mixing the device drivers
+  with the rest of the system (since they both run on the same
   physical CPU), we treat the device drivers for each device as if
   they were running on a ``logical'' CPU dedicated to that device.
   This novel idea allows us to build up a certified hierarchy of
@@ -374,6 +441,16 @@ architecture for building certified
   correctness of the assembly code that can run on the actual
   hardware.
   
+\item We have further extended our engine with effective way of representing
+shared states accessed by concurrent programs and making assumptions
+on other concurrent programs. This allows us to reuse all of
+existing verification techniques to verify concurrent programs, assuming as if
+they run sequentially, and move all the reasoning of interleaved executions
+to a separate logical reasoning framework.  
+Using this technique, we have successfully extended the kernel further
+into certified concurrent OS kernel with fine grained locking.
+  
+ \ignore{
 \item We have developed an effective event-based framework for representing
 shared states, and further extended existing framework into an architecture
 for building certified concurrent OS kernels. The framework utilizes contextual
@@ -389,6 +466,7 @@ consists of 6,500 lines of C and assembly code, runs on stock x86 multicore mach
 and doubles as a hypervisor and boots multiple instances of Linux as guest on different
 CPUs. To the best of our knowledge, this is the first fully verified general-purpose concurrent
 OS kernel with fine-grained locking.
+}
 \end{itemize}
 
 %The rest of this thesis is organized as follows.
