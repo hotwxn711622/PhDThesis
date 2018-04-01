@@ -1,4 +1,6 @@
-High level overview here ...
+To illustrate the effectiveness of our automation engine, in this chapter, we present
+how we build, specify, and verify each of the mCertiKOS kernel functions using the tools.
+We first present the lowest level machine model, the layer interface MBoot.
 
 \section{Machine Model}
 \paragraph{Layer Interface MBoot}
@@ -34,6 +36,14 @@ receives an integer $i$ as parameter and returns appropriate field in \textsf{MM
 with the key $i$, while the primitive \textsf{get\_size} returns the number of
 entries in the table.
 
+\begin{invariant}[MM valid]
+For any index $i$ such that $0\le i<MMSize$, we have valid memory mapping
+triple of $(s, l, p)$ where $s >= 0$, $l > 0$, and $s + l < Int.max\_unsigned$.
+\end{invariant}
+
+Since the MM table and its size comes from BIOS, the invariant is treated as top level
+assumption of our entire proof. 
+
 There are also three abstract states in MBoot related to the hardware paging.
 The abstract state \textsf{CR3} models the hardware \textsf{CR3} register,
 which stores the root address of the current page table; the abstract state
@@ -46,6 +56,15 @@ The special flags \textsf{ikern} and \textsf{ihost} represent whether the execut
 is currently in the kernel and host mode, respectively. They are set to \textsf{true}
 when the execution traps into the kernel or host, and are set to \textsf{false} when
 the execution returns back to user or the guest.
+
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/bootloader.v}
+	\caption{The specification of \texttt{boot loader} in Coq}
+	\label{fig:bootloader_v}
+\end{figure}
+
+\todo{Explain how we write specifications, and various Coq constructions used here.}
 
 \todo{How we handle initialization.}
 
@@ -60,25 +79,65 @@ and then sets \textsf{init} to be \textsf{true}.
 
 \section{Physical Memory Management}
 
-\paragraph{Layer Interface MContainer}
-...
-
-...
-
 \paragraph{Layer Interface MATIntro}
 ...
 
-...
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/at.v}
+	\caption{The in-memory and logical representation of allocation table}
+	\label{fig:at_v}
+\end{figure}
 
 \paragraph{Layer Interface MATInit}
-...
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/mem_init.c}
+	\caption{The implementation of \texttt{mem\_init} in C}
+	\label{fig:mem_init_c}
+\end{figure}
+
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/mem_init.v}
+	\caption{The specification of \texttt{mem\_init} in Coq}
+	\label{fig:mem_init_v}
+\end{figure}
 
 ...
 
 \paragraph{Layer Interface MATOp}
-...
 
-...
+\begin{figure}
+	\lstinputlisting [language=C] {src/palloc.c}
+	\caption{The implementation of \texttt{palloc} in C}
+	\label{fig:palloc_c}
+\end{figure}
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/palloc.v}
+	\caption{The specification of \texttt{palloc} in Coq}
+	\label{fig:palloc_v}
+\end{figure}
+
+\begin{lemma}[Termination] There exists an index $K$ such that either $K=NPS$, or $0<K<NPS$ and the permission of the $K'th$ entry
+in AT is normal, and permission of any other entry prior to $K$ is not normal.
+\end{lemma}
+
+\begin{lemma} [Unique] Any two indexes satisfying the above conditions are the same indexes.
+\end{lemma}
+
+\begin{definition}[Loop Invariant] 
+\begin{itemize}
+\item $index=NPS$ or $index=K$,
+\item $index\le K$, and
+\item for every $i$ such that $0<i<index$, the permission of $i'th$ entry in AT is not normal.
+\end{itemize}
+\end{definition}
+
+With above lemmas, loop invariant, and the decreasing termination metric of $NPS-index$, we can verify
+the $palloc$ function reasonably easily with the automation engine.
+
 
 \section{Virtual Memory Management}
 
