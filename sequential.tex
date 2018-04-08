@@ -25,24 +25,16 @@ is represented by the abstract type \textsf{MMInfo} in Fig.~\ref{fig:ref:mboot_r
 Since this data is initialized by the boot loader, the
 \textsf{MMInfo} in Fig.~\ref{fig:ref:mboot_rdata} also contains the default case
 \textsf{MMUndef} to indicate the case when it is not yet initialized by the boot loader.
-The whole \textsf{e820} table is represented by \textsf{MMTable} as a partial map
+The whole \textsf{e820} table is represented by \textsf{MM} as a partial map
 from integer keys to \textsf{MMInfo}. Since it is a partial map, the number of
 \textsf{MMInfo} entries is defined separately as \textsf{MMSize} as shown in
 Fig.~\ref{fig:ref:mboot_rdata}.
 
 The MBoot interface also defines a list of primitives to operate on the abstract
 memory map. The primitives \textsf{get\_mms}, \textsf{get\_mml}, and \textsf{is\_usable}
-receives an integer $i$ as parameter and returns appropriate field in \textsf{MMTable}
+receives an integer $i$ as parameter and returns appropriate field in \textsf{MM}
 with the key $i$, while the primitive \textsf{get\_size} returns the number of
 entries in the table.
-
-\begin{invariant}[MM valid]
-For any index $i$ such that $0\le i<MMSize$, we have valid memory mapping
-triple of $(s, l, p)$ where $s >= 0$, $l > 0$, and $s + l < Int.max\_unsigned$.
-\end{invariant}
-
-Since the MM table and its size comes from BIOS, the invariant is treated as top level
-assumption of our entire proof. 
 
 There are also three abstract states in MBoot related to the hardware paging.
 The abstract state \textsf{CR3} models the hardware \textsf{CR3} register,
@@ -64,23 +56,64 @@ the execution returns back to user or the guest.
 	\label{fig:bootloader_v}
 \end{figure}
 
-\todo{Explain how we write specifications, and various Coq constructions used here.}
+The special flag \textsf{init} represents whether the kernel data is fully initialized.
+Verification of initialization code has always been a big challenge because the system
+data would only satisfy global invariants when they are properly initialized by these code.
+In other words, the invariants are not satisfied when these initialization code run but
+are established through these initialization process. Existing verification approach
+has assumed that all the system data are already properly initialized, thus leaving
+all the initialization code unverified \cite{klein2009sel4,klein14}.
 
-\todo{How we handle initialization.}
+To tackle this challenge, we build the initialization stack into a hierarchical structure
+instead of the standard flat structure, i.e., each initialization function always first calls
+the previous initialization function, then initializes its underlying data. At the bottom layer,
+we have the specification of the boot loader, which initializes the \textsf{MM} and \textsf{MMSize}.
+Like any other initialization functions, it requires the \textsf{init} to be \textsf{false} at entry, and turns
+it to \textsf{true} upon exit. Then all invariants relying on initialized states require that the \textsf{init}
+being \textsf{true}, i.e., the the data are properly initialized by corresponding initialization function.
+For example, we have following invariant on the \textsf{MM}.
 
-Another special flag \textsf{init} is introduced to indicate whether the kernel
-is initialized, and a
-special primitive \textsf{boot\_loader} is introduced in MBoot to model
-the behavior of the unverified boot loader. As most primitives, it requires that
-both \textsf{ikern} and \textsf{ihost} to be \textsf{true}, but \textsf{init}
-flag to be \textsf{false}. It then initializes \textsf{MMTable} and \textsf{MMSize}
-and then sets \textsf{init} to be \textsf{true}. 
+\begin{invariant}[MM valid]
+If \textsf{init} is \textsf{true}, for any index $i$ such that $0\le i<MMSize$, we have valid memory mapping
+triple of $(s, l, p)$ where $s >= 0$, $l > 0$, and $s + l < Int.max\_unsigned$.
+\end{invariant}
+
+Since the MM table and its size comes from BIOS, the invariant is treated as top level
+assumption of our entire proof. 
+
+Figure \ref{fig:bootloader_v} presents our Coq specification for the boot loader primitive.
+Here, the notation ``\textsf{adt \{attr: val\}}'' indicates a new abstract state where the attribute
+\textsf{attr} in \textsf{adt} is replaced by the new value \textsf{val} and otherwise the same
+as original \textsf{adt}.
+The specification is written as a function which takes the abstract data type \textsf{RData},
+and returns a new abstract state or \textsf{None} representing the execution gets stuck.
+Our top level specification guarantees that the system execution never gets stuck.
+But at this level, the primitive could get stuck when this primitive is misused, e.g., when it is called twice.
 
 
 \section{Physical Memory Management}
 
+In physical memory management module, we build a physical page allocation map to maintain the
+allocation status of physical pages.
+The top section in Figure \ref{fig:at_v} shows
+the C implementation of the allocation table, where each allocation entry contains the field \textsf{isnorm}
+to indicate whether the
+physical page is reserved by BIOS, reserved for kernel usage, or free to be used by user programs;
+and the field \textsf{allocated} to indicate whether the page is already allocated by the kernel.
+
 \paragraph{Layer Interface MATIntro}
-...
+We would like to initialize the allocation information map with the information from the \textsf{MM},
+and provide an allocation method to allow the kernel to allocate a physical page.
+Before we implement and verify all these functions, following our mantra, we would like to perform
+these reasoning completely at the logical level, without worrying about isolation.
+As shown in the bottom section of Figure \ref{fig:at_v}, we introduce a new layer interface MATIntro
+to abstract the concrete in memory allocation table into a logical map. Here $ZMap.t$ is a partial
+map implementation which takes a value type and returns a partial map from integers to the values of given type.
+
+In this layer interface, we provide several getter/setter primitives to operate on this map:
+\texttt{at\_get} and \texttt{at\_set} primitives to read and write to the \textsf{allocated} field of \textsf{AT},
+and \texttt{is\_norm} and \texttt{set\_norm} for the \textsf{isnorm} field. \texttt{set\_norm} also sets \textsf{allocated}
+to \textsf{false} in addition.
 
 
 \begin{figure}
@@ -104,13 +137,149 @@ and then sets \textsf{init} to be \textsf{true}.
 	\label{fig:mem_init_v}
 \end{figure}
 
-...
+Next, we would like to initialize this logical allocation table using the information provided
+in \textsf{MM}. The concrete C implementation is shown in Figure \ref{fig:mem_init_c}.
+Note that as we discussed earlier, first thing it does is to call the lower level initialization
+function (boot\_loader in this case) before it performs the actual initialization of its data.
+As shown in the figure, it contains two main components. It first computes how much memory
+do we have on this machine and sets \textsf{nps} field properly by calling the \texttt{set\_nps} primitive.
+Next, it sets proper allocation state for every page based on the information available in \textsf{MM}.
+The corresponding Coq specification is shown in Figure \ref{fig:mem_init_v}. 
+Comparing to the specification of \texttt{boot\_loader}, the difference is that it also initializes
+\textsf{AT} and \textsf{nps} fields in the abstract states to their expected logical values.
 
-Then we can introduce the invariants on MM such that when init is true....
-Existing primitives all satisfy this invariant, unrelated...
-Just need to show the new mem init primitives at upper layer satisfy...
-then preserved at any moment of system execution on top of this new layer.
-And can be used as given by any program we verify on top of this new layer...
+The verification of this initialization function is not trivial. But fortunately, our reasoning
+is now completely at logical level and there are no in-memory data involved, thus no need
+to reason about isolation as they are guaranteed by construction.
+And given that this piece of code is verified on top of the layer interface MATIntro,
+we can utilize the available invariants on that interface, i.e., the invariants on \textsf{MM}, as given.
+
+The verification is achieved piece by piece. First, we verify the first component where
+we compute and sets the maximum number of available physical pages by feeding
+following information into our automation engine.
+
+\begin{definition}[Pre-condition] 
+\begin{itemize}
+\item $\textsf{init} = \textsf{ikern} = \textsf{ihost} = \textsf{true}$,
+\item $i=\textsf{nps}=0$, and
+\item $\textsf{size}=\textsf{MMSize adt}$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Post-condition] 
+\begin{itemize}
+\item $\textsf{nps}=\textsf{initial\_nps (MM adt) (MMSize adt)}$, and 
+\item $\textsf{adt}'=\textsf{adt}$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Loop Invariant]
+\begin{itemize}
+\item $0\le i \le \textsf{MMSize adt}$, and
+\item $\textsf{nps}=\textsf{initial\_nps (MM adt) i}$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Termination Metric]
+$\textsf{MMSize adt}-i$
+\end{definition}
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/nps_loop.v}
+	\caption{The main lemma for the loop computing \texttt{nps}}
+	\label{fig:nps_loop_v}
+\end{figure}
+
+With these information, we can utilize the automation engine to derive the main lemma shown in Figure \ref{fig:nps_loop_v}.
+When we verify the main function body, this lemma will be automatically applied by the automation engine to prove
+the first loop in the function body.
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/mm_kern_valid.v}
+	\caption{The predicate indicating whether the page is reserved or userable}
+	\label{fig:mm_kern_valid_v}
+\end{figure}
+
+Next, we verify the main initialization loop. Here, we first verify the inner loop and use the derived lemma to verify the
+correctness of the main loop. Following are the list of information we provide to verify the inner loop.
+The auxiliary predicate \textsf{MM\_kern\_valid} (shown in Figure \ref{fig:mm_kern_valid_v}) indicates whether
+the corresponding physical page is userable or reserved by BIOS.
+
+\begin{definition}[Pre-condition] 
+\begin{itemize}
+\item $\textsf{init} = \textsf{ikern} = \textsf{ihost} = \textsf{true}$,
+\item $j=\textsf{flag}=\textsf{isnorm}=0$,
+\item $\textsf{size}=\textsf{MMSize adt}$,
+\item $\textsf{nps}=\textsf{nps adt}$, and
+\item $\textsf{MEMLOW}\le i < \textsf{MEMHIGH}$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Post-condition] 
+\begin{itemize}
+\item $\textsf{flag}=\textsf{isnorm}=1$ and $\textsf{MM\_kern\_valid (MM adt) i size}$\\OR\\
+$(\textsf{flag}=0$ or $(\textsf{flag}=1$ and $\textsf{isnorm=0}))$\\ and $\textbf{not}~\textsf{MM\_kern\_valid (MM adt) i (MMSize adt)}$
+\item $\textsf{adt'}=\textsf{adt}$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Loop Invariant]
+\begin{itemize}
+\item $0\le j \le \textsf{MMSize adt}$,
+\item $\textsf{MEMLOW}\le i < \textsf{MEMHIGH}$,
+\item $j=0$ and $\textsf{flag}=0$      OR
+
+$j>0$ and $\textsf{ZMap.get (j-1) (MM adt)} = \textsf{MMValid s l isnorm}$ and
+
+\hspace{10mm}$\textsf{flag}=0$ and ($s > i * PAGESIZE$ or $l + s < (i + 1) * PAGESIZE$)      OR
+	
+\hspace{10mm}$\textsf{flag}=1$ and $s \le i * PAGESIZE$ and $l + s \geq (i + 1) * PAGESIZE$,
+
+\item for all $j', s', l', isnorm'$, if $0\le j' < j - 1$ and $\textsf{ZMap.get j' (MM adt)} = \textsf{MMValid s' l' isnorm'}$, then
+$s' > i * PAGESIZE$ or $l' + s' < (i + 1) * PAGESIZE$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Termination Metric]
+$\textsf{MMSize adt}-j$
+\end{definition}
+
+We could observe that the inputs for the inner loop is reasonably complicated. It is because
+this inner loop is just an auxiliary loop to assist in the main goal of initializing allocation table
+in the outer loop, thus may not have a simple meaningful interpretation by itself.
+With automation engine, we could derive a correctness lemma for the inner loop similar to the one
+we derived for the loop computing \textsf{nps}. This could be used to verify the main outer loop,
+as our automation engine can utilize the lemma to discharge the proof goals for the inner while loop.
+Unlike inner loop, the inputs for the main loop are reasonably simple.
+
+\begin{definition}[Pre-condition] 
+\begin{itemize}
+\item $\textsf{init} = \textsf{ikern} = \textsf{ihost} = \textsf{true}$,
+\item $i=0$, 
+\item $\textsf{size}=\textsf{MMSize adt}$, and
+\item $\textsf{nps}=\textsf{nps adt}$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Post-condition] 
+$\textsf{adt'}=\textsf{adt \{MM: initial\_AT (MM adt) (MMSize adt)\}}$.
+\end{definition}
+
+\begin{definition}[Loop Invariant]
+\begin{itemize}
+\item $0\le i \le \textsf{nps}$,
+\item $\textsf{init}=\textsf{true}$, and
+\item $\textsf{AT}=\textsf{initial\_AT (MM adt) i}$.
+\end{itemize}
+\end{definition}
+
+\begin{definition}[Termination Metric]
+$\textsf{nps}-i$
+\end{definition}
+
+
+Talk about invariant. can only be introduced at this layer interface, even though we already had
+the abstract states in MATIntro layer.
 
 \paragraph{Layer Interface MATOp}
 
