@@ -277,9 +277,33 @@ $\textsf{adt'}=\textsf{adt \{MM: initial\_AT (MM adt) (MMSize adt)\}}$.
 $\textsf{nps}-i$
 \end{definition}
 
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/mem_init_correct.v}
+	\caption{The main correctness theorem for \texttt{mem\_init} in Coq}
+	\label{fig:mem_init_correct_v}
+\end{figure}
 
-Talk about invariant. can only be introduced at this layer interface, even though we already had
-the abstract states in MATIntro layer.
+With the correctness lemma of the outer loop, we are able to prove the main correctness theorem for
+the code \texttt{mem\_init} shown in Figure \ref{fig:mem_init_correct_v}.
+
+In this MATInit layer interface, we also introduce following invariant for abstract \textsf{AT}.
+
+\begin{invariant}[valid AT] If \textsf{init} is \textsf{true}, then
+\begin{itemize}
+\item every page below \textsf{MEMLOW} or above \textsf{MEMHIGH} is marked as an unallocated kernel-reserved page, and
+\item any other page is either reserved by BIOS, or marked as userable.
+\end{itemize}
+\end{invariant}
+
+Note that the invariant on \textsf{AT} is only introduced at this MATInit layer interface even though the abstract
+state \textsf{AT} was already introduced at the previous MATIntro layer. The reason is that at MATIntro layer, 
+we have not yet introduced the \textsf{mem\_init} initialization primitive. The initialization primitive on MATIntro layer
+is still the \textsf{boot\_loader} primitive. As this primitive turns the \textsf{init} field from \textsf{false} to \textsf{true},
+without initializing the \textsf{AT}, this primitive would violate the above invariant if we introduced the invariant at this layer.
+On the other hand, as we have proper initialization primitive at the MATInit layer, we now can safely introduce this invariant.
+We need to separately prove that the constructed logical initial states in the specification satisfy the invariant, i.e., the \textsf{AT}
+is properly initialized. This is done as a separate step, independent from the code verification described above.
+
 
 \paragraph{Layer Interface MATOp}
 
@@ -316,20 +340,72 @@ the $palloc$ function reasonably easily with the automation engine.
 
 \section{Virtual Memory Management}
 
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/ptable.v}
+	\caption{The implementation and abstract representation of page table}
+	\label{fig:ptable_v}
+\end{figure}
+
 \paragraph{Layer Interface MPTIntro}
-...
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/ptable_getter_setter.c}
+	\caption{The getter and setter functions for page table in C}
+	\label{fig:ptable_getter_setter_c}
+\end{figure}
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/ptable_getter_setter.v}
+	\caption{Selected specifications of page table setters/getters in Coq}
+	\label{fig:ptable_getter_setter_v}
+\end{figure}
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/ptable_getter_setter2.v}
+	\caption{Selected specifications of page table setters/getters in Coq}
+	\label{fig:ptable_getter_setter2_v}
+\end{figure}
 
 ...
 
 \paragraph{Layer Interface MPTOp}
-...
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/ptableop.c}
+	\caption{The functions operates on page table in C}
+	\label{fig:ptable_op_c}
+\end{figure}
 
 ...
+
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/idpde_init.c}
+	\caption{The initialization function for IDPDE in C}
+	\label{fig:idpde_init_c}
+\end{figure}
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/idpde_init.v}
+	\caption{The specification for IDPDE in Coq}
+	\label{fig:idpde_init_v}
+\end{figure}
 
 \paragraph{Layer Interface MPTCommon}
-...
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/ptablecomm.c}
+	\caption{Page allocation and initialization functions in C}
+	\label{fig:ptablecomm_c}
+\end{figure}
 
 ...
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/ptablecomm.v}
+	\caption{Specifications for page allocation and initialization functions in Coq}
+	\label{fig:ptablecomm_v}
+\end{figure}
 
 \paragraph{Layer Interface MPTKern}
 ...
