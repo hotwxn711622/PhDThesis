@@ -408,48 +408,115 @@ the $palloc$ function reasonably easily with the automation engine.
 \end{figure}
 
 \paragraph{Layer Interface MPTKern}
-...
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/ptablekern.c}
+	\caption{Page allocation and initialization functions in C}
+	\label{fig:ptablekern_c}
+\end{figure}
 
 ...
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/ptablekern.v}
+	\caption{Specifications for page allocation and initialization functions in Coq}
+	\label{fig:ptablekern_v}
+\end{figure}
 
 \paragraph{Layer Interface MPTInit}
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/ptinit.c}
+	\caption{Implementation of main page table initialization function in C}
+	\label{fig:ptinit_c}
+\end{figure}
+
+...
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/ptinit.v}
+	\caption{Specification of main page table initialization function in Coq}
+	\label{fig:ptinit_v}
+\end{figure}
+
+
+\begin{invariant}[Page Table Valid]
+\begin{itemize}
+\item paging is enabled ($\textsf{pg}=\textsf{true}$) only after the page table map is initialized ($\textsf{init}=\textsf{true}$),
+\item if $\textsf{init}=\textsf{true}$, the kernel page map (0'th page map in \textsf{ptpool}) is an identity page map with kernel only permission, and
+\item if $\textsf{init}=\textsf{true}$, the low memory portion of the rest of page map in \textsf{ptpool} is an identity map with kernel only permissions.
+\end{itemize}
+\end{invariant}
+
+\paragraph{Layer Interface MPTBit}
 ...
 
 ...
+
+
 
 \paragraph{Layer Interface MPTNew}
-...
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/ptnew.c}
+	\caption{Implementations of \texttt{pt\_resv} and \texttt{pmap\_init} in C}
+	\label{fig:ptnew_c}
+\end{figure}
 
 ...
 
-\section{Shared-Memory IPC}
+initializes \textsf{pb} field of abstract states.
 
-\paragraph{Layer Interface MShareIntro}
-...
 
-...
-
-\paragraph{Layer Interface MShareOp}
-...
-
-...
-
-\paragraph{Layer Interface MShare}
-...
-
-...
 
 \section{Thread Management}
 
 \paragraph{Layer Interface PKContext}
-...
 
-...
+\begin{figure}
+	\lstinputlisting [language=C] {src/kctxt.c}
+	\caption{Implementation of kernel context in C}
+	\label{fig:kctxt_c}
+\end{figure}
+
+\textsf{kctx\_switch}
 
 \paragraph{Layer Interface PKContextNew}
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/kctxtnew.c}
+	\caption{Implementation of \textsf{kctxt\_new} in C}
+	\label{fig:kctxtnew_c}
+\end{figure}
+
+...
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/kctxtnew.v}
+	\caption{Specification of \textsf{kctxt\_new} in Coq}
+	\label{fig:kctxtnew_v}
+\end{figure}
+
+
+\paragraph{Layer Interface PThreadIntro}
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/tcb.c}
+	\caption{Implementation of thread control block in C}
+	\label{fig:tcb_c}
+\end{figure}
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/tdq.c}
+	\caption{Implementation of thread queue in C}
+	\label{fig:tdq_c}
+\end{figure}
+
+\paragraph{Layer Interface PThreadInit}
 ...
 
 ...
+
 
 \paragraph{Layer Interface PQueueIntro}
 ...
@@ -457,14 +524,48 @@ the $palloc$ function reasonably easily with the automation engine.
 ...
 
 \paragraph{Layer Interface PQueueInit}
-...
 
-...
+\begin{figure}
+	\lstinputlisting [language=C] {src/queue_ops.c}
+	\caption{Implementation of queue operations in C}
+	\label{fig:queue_ops_c}
+\end{figure}
+
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/abq.v}
+	\caption{Specification of abstract queue in Coq}
+	\label{fig:abq_v}
+\end{figure}
 
 \paragraph{Layer Interface PThreadSched}
-...
 
-...
+\begin{figure}
+	\lstinputlisting [language=C] {src/thread.c}
+	\caption{Implementation of thread management operations in C}
+	\label{fig:thread_c}
+\end{figure}
+
+\begin{figure}
+	\lstinputlisting [language={[x86masm]Assembler}] {src/thread.s}
+	\caption{Implementation of thread scheduler in assembly}
+	\label{fig:thread_s}
+\end{figure}
+
+
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/thread.v}
+	\caption{Specification of thread management operations in Coq}
+	\label{fig:thread_v}
+\end{figure}
+
+
+\begin{figure}
+	\lstinputlisting [language=Caml] {src/thread_sched.v}
+	\caption{Specification of thread scheduler in Coq}
+	\label{fig:thread_sched_v}
+\end{figure}
 
 \paragraph{Layer Interface PThread}
 ...
