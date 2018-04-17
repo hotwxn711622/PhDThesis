@@ -22,10 +22,13 @@ Function enqueue_spec (n i: Z) (adt: RData): option RData :=
               Some adt {abtcb: ZMap.set i (AbTCBValid st n) (abtcb adt)}
               {abq: ZMap.set n (AbQValid (i::l)) (abq adt)}
             else None
-          | _ => None end
-       | _ => None end
+          | _ => None 
+         end
+       | _ => None 
+      end
      else None
-   | _ => None end.
+   | _ => None 
+  end.
 
 Function dequeue_spec (n: Z) (adt: RData): option (RData * Z) :=
   match (ikern adt, pg adt, ihost adt, ipt adt) with
@@ -38,7 +41,10 @@ Function dequeue_spec (n: Z) (adt: RData): option (RData * Z) :=
               | AbTCBValid st _ =>
                 Some (adt {abtcb: ZMap.set la (AbTCBValid st (-1)) (abtcb adt)}
                 {abq: ZMap.set n (AbQValid (remove zeq la l)) (abq adt)}, la)
-              | _ => None end
-       | _ => None end
+              | _ => None 
+              end
+       | _ => None 
+      end
      else None
-   | _ => None end.
+   | _ => None 
+  end.

@@ -6,7 +6,7 @@ We first present the lowest level machine model, the layer interface MBoot.
 \paragraph{Layer Interface MBoot}
 
 \begin{figure}
-\lstinputlisting [language = Caml] {src/mboot_rdata.v}
+\lstinputlisting [language = Coq] {src/mboot_rdata.v}
 \caption{The abstract states in the layer interface MBoot}
 \label{fig:ref:mboot_rdata}
 \end{figure}
@@ -51,7 +51,7 @@ the execution returns back to user or the guest.
 
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/bootloader.v}
+	\lstinputlisting [language=Coq] {src/bootloader.v}
 	\caption{The specification of \texttt{boot loader} in Coq}
 	\label{fig:bootloader_v}
 \end{figure}
@@ -117,7 +117,7 @@ to \textsf{false} in addition.
 
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/at.v}
+	\lstinputlisting [language=Coq] {src/at.v}
 	\caption{The in-memory and logical representation of allocation table}
 	\label{fig:at_v}
 \end{figure}
@@ -132,7 +132,7 @@ to \textsf{false} in addition.
 
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/mem_init.v}
+	\lstinputlisting [language=Coq] {src/mem_init.v}
 	\caption{The specification of \texttt{mem\_init} in Coq}
 	\label{fig:mem_init_v}
 \end{figure}
@@ -185,7 +185,7 @@ $\textsf{MMSize adt}-i$
 \end{definition}
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/nps_loop.v}
+	\lstinputlisting [language=Coq] {src/nps_loop.v}
 	\caption{The main lemma for the loop computing \texttt{nps}}
 	\label{fig:nps_loop_v}
 \end{figure}
@@ -195,7 +195,7 @@ When we verify the main function body, this lemma will be automatically applied 
 the first loop in the function body.
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/mm_kern_valid.v}
+	\lstinputlisting [language=Coq] {src/mm_kern_valid.v}
 	\caption{The predicate indicating whether the page is reserved or userable}
 	\label{fig:mm_kern_valid_v}
 \end{figure}
@@ -278,7 +278,7 @@ $\textsf{nps}-i$
 \end{definition}
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/mem_init_correct.v}
+	\lstinputlisting [language=Coq] {src/mem_init_correct.v}
 	\caption{The main correctness theorem for \texttt{mem\_init} in Coq}
 	\label{fig:mem_init_correct_v}
 \end{figure}
@@ -314,7 +314,7 @@ is properly initialized. This is done as a separate step, independent from the c
 \end{figure}
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/palloc.v}
+	\lstinputlisting [language=Coq] {src/palloc.v}
 	\caption{The specification of \texttt{palloc} in Coq}
 	\label{fig:palloc_v}
 \end{figure}
@@ -341,7 +341,7 @@ the $palloc$ function reasonably easily with the automation engine.
 \section{Virtual Memory Management}
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/ptable.v}
+	\lstinputlisting [language=Coq] {src/ptable.v}
 	\caption{The implementation and abstract representation of page table}
 	\label{fig:ptable_v}
 \end{figure}
@@ -355,13 +355,13 @@ the $palloc$ function reasonably easily with the automation engine.
 \end{figure}
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/ptable_getter_setter.v}
+	\lstinputlisting [language=Coq] {src/ptable_getter_setter.v}
 	\caption{Selected specifications of page table setters/getters in Coq}
 	\label{fig:ptable_getter_setter_v}
 \end{figure}
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/ptable_getter_setter2.v}
+	\lstinputlisting [language=Coq] {src/ptable_getter_setter2.v}
 	\caption{Selected specifications of page table setters/getters in Coq}
 	\label{fig:ptable_getter_setter2_v}
 \end{figure}
@@ -386,7 +386,7 @@ the $palloc$ function reasonably easily with the automation engine.
 \end{figure}
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/idpde_init.v}
+	\lstinputlisting [language=Coq] {src/idpde_init.v}
 	\caption{The specification for IDPDE in Coq}
 	\label{fig:idpde_init_v}
 \end{figure}
@@ -402,7 +402,7 @@ the $palloc$ function reasonably easily with the automation engine.
 ...
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/ptablecomm.v}
+	\lstinputlisting [language=Coq] {src/ptablecomm.v}
 	\caption{Specifications for page allocation and initialization functions in Coq}
 	\label{fig:ptablecomm_v}
 \end{figure}
@@ -418,7 +418,7 @@ the $palloc$ function reasonably easily with the automation engine.
 ...
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/ptablekern.v}
+	\lstinputlisting [language=Coq] {src/ptablekern.v}
 	\caption{Specifications for page allocation and initialization functions in Coq}
 	\label{fig:ptablekern_v}
 \end{figure}
@@ -434,7 +434,7 @@ the $palloc$ function reasonably easily with the automation engine.
 ...
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/ptinit.v}
+	\lstinputlisting [language=Coq] {src/ptinit.v}
 	\caption{Specification of main page table initialization function in Coq}
 	\label{fig:ptinit_v}
 \end{figure}
@@ -492,7 +492,7 @@ initializes \textsf{pb} field of abstract states.
 ...
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/kctxtnew.v}
+	\lstinputlisting [language=Coq] {src/kctxtnew.v}
 	\caption{Specification of \textsf{kctxt\_new} in Coq}
 	\label{fig:kctxtnew_v}
 \end{figure}
@@ -533,7 +533,7 @@ initializes \textsf{pb} field of abstract states.
 
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/abq.v}
+	\lstinputlisting [language=Coq] {src/abq.v}
 	\caption{Specification of abstract queue in Coq}
 	\label{fig:abq_v}
 \end{figure}
@@ -555,22 +555,32 @@ initializes \textsf{pb} field of abstract states.
 
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/thread.v}
+	\lstinputlisting [language=Coq] {src/thread.v}
 	\caption{Specification of thread management operations in Coq}
 	\label{fig:thread_v}
 \end{figure}
 
 
 \begin{figure}
-	\lstinputlisting [language=Caml] {src/thread_sched.v}
+	\lstinputlisting [language=Coq] {src/thread_sched.v}
 	\caption{Specification of thread scheduler in Coq}
 	\label{fig:thread_sched_v}
 \end{figure}
 
 \paragraph{Layer Interface PThread}
-...
 
-...
+
+\begin{figure}
+	\lstinputlisting [language={[x86masm]Assembler}] {src/scheduler.s}
+	\caption{Implementation of thread yield in assembly}
+	\label{fig:scheduler_s}
+\end{figure}
+
+\begin{figure}
+	\lstinputlisting [language=Coq] {src/scheduler.v}
+	\caption{Specification of thread yield in Coq}
+	\label{fig:scheduler_v}
+\end{figure}
 
 \section{Single-Copy Asynchronous IPC}
 

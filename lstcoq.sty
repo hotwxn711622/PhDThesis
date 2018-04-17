@@ -54,7 +54,7 @@ sem_cast, eval_funcall, assign_loc, external_call, internal_call, Z, ZMap,
 ZMap.get, ZMap.set, ZMap.t, Out_normal, Out_return, Out_continue, Out_break,
 outcome, Tvoid, Tint, Tint32, Int, Int64, Vptr, Vint, Vfloat, Vlong, genv,
 temp_env, env, mem, trace, state, step, regset, instruction, exec_instr,
-Mem.load, Mem.store, RData, function, has_evar, is_evar, fail},
+Mem.load, Mem.store, RData, function, has_evar, is_evar, fail, asm_instruction},
 % Comments delimiters, we do turn this off for the manual
 morecomment=[l]{(*},
 %
@@ -99,7 +99,7 @@ keywordstyle=[4]{\ttfamily\color{dkblue}},
 % Style for terminators keywords
 keywordstyle=[5]{\ttfamily\color{dkred}},
 %Style for iterators
-keywordstyle=[6]{\ttfamily\color{dkpink}},
+keywordstyle=[6]{\ttfamily\color{VioletRed}},
 %Style for types
 keywordstyle=[7]{\ttfamily\color{blue}},
 % Style for strings

@@ -1,4 +1,5 @@
-  Definition kctxt_new_spec (adt: RData) (b: block) (b':block) (ofs': int) id q: option (RData * Z) :=
+  Definition kctxt_new_spec (adt: RData) (b: block) (b':block) (ofs': int) id q:
+                                                            option (RData * Z) :=
     match (pg adt, ikern adt, ihost adt, ipt adt) with
       | (true, true, true, true) =>
         match first_free_PT (pb adt) num_proc with
