@@ -609,19 +609,36 @@ initializes \textsf{pb} field of abstract states.
 \section{Intel Virtualization Support}
 
 \paragraph{Layer Interface VEPTIntro}
-...
 
-...
+\begin{figure}
+	\lstinputlisting [language=Coq] {src/ept.v}
+	\caption{Concrete and abstract EPT}
+	\label{fig:ept_v}
+\end{figure}
 
-\paragraph{Layer Interface VEPTOp}
-...
 
-...
+\begin{figure}
+	\lstinputlisting [language=C] {src/ept.c}
+	\caption{Implementation of getter and setter functions of EPT in C}
+	\label{fig:ept_c}
+\end{figure}
 
 \paragraph{Layer Interface VEPTInit}
-...
 
-...
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/eptop.c}
+	\caption{Implementation of EPT operations in C}
+	\label{fig:eptop_c}
+\end{figure}
+
+\paragraph{Layer Interface VEPTOp}
+
+\begin{figure}
+	\lstinputlisting [language=C] {src/eptinit.c}
+	\caption{Implementation of EPT operations in C}
+	\label{fig:eptinit_c}
+\end{figure}
 
 \paragraph{Layer Interface VVMCSIntro}
 ...
