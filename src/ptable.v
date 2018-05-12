@@ -1,7 +1,7 @@
 #define NUM_PROC 1024
 
-extern char * PTPool[NUM_PROC][1024];
-extern unsigned int IDPMap[1024][1024];
+char * PTPool[NUM_PROC][1024];
+unsigned int IDPMap[1024][1024];
 
 -----------------------------------------------
 Inductive PTPerm: Type :=

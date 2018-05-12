@@ -155,7 +155,7 @@ And given that this piece of code is verified on top of the layer interface MATI
 we can utilize the available invariants on that interface, i.e., the invariants on \textsf{MM}, as given.
 
 The verification is achieved piece by piece. First, we verify the first component where
-we compute and sets the maximum number of available physical pages by feeding
+we compute and set the maximum number of available physical pages by feeding
 following information into our automation engine.
 
 \begin{definition}[Pre-condition] 
@@ -307,6 +307,12 @@ is properly initialized. This is done as a separate step, independent from the c
 
 \paragraph{Layer Interface MATOp}
 
+In this layer, we introduce the main physical page allocation function \textsf{palloc}.
+As shown in Figure \ref{fig:palloc_c}, the function seeks for the first unused physical page,
+marks it as used, and returns the index of the page found.
+The specification shown in Figure \ref{fig:palloc_v} is similar, except it manipulates
+the abstract state \textsf{AT} instead of the concrete in memory data.
+
 \begin{figure}
 	\lstinputlisting [language=C] {src/palloc.c}
 	\caption{The implementation of \texttt{palloc} in C}
@@ -319,12 +325,19 @@ is properly initialized. This is done as a separate step, independent from the c
 	\label{fig:palloc_v}
 \end{figure}
 
+The verification of this function is reasonably straightforward. We first verify that
+the while loop indeed terminates with the index to the first unused physical page when such page is available.
+To prove that, we need following two lemmas.
+
 \begin{lemma}[Termination] There exists an index $K$ such that either $K=NPS$, or $0<K<NPS$ and the permission of the $K'th$ entry
 in AT is normal, and permission of any other entry prior to $K$ is not normal.
 \end{lemma}
 
 \begin{lemma} [Unique] Any two indexes satisfying the above conditions are the same indexes.
 \end{lemma}
+
+With above lemmas, we can feed following loop invariant, and the decreasing termination metric of $NPS-index$ to 
+the automation engine to verify the while loop, and further the entire $palloc$ function reasonably easily.
 
 \begin{definition}[Loop Invariant] 
 \begin{itemize}
@@ -334,11 +347,33 @@ in AT is normal, and permission of any other entry prior to $K$ is not normal.
 \end{itemize}
 \end{definition}
 
-With above lemmas, loop invariant, and the decreasing termination metric of $NPS-index$, we can verify
-the $palloc$ function reasonably easily with the automation engine.
 
 
 \section{Virtual Memory Management}
+
+On top of the physical memory management layers, we introduce the
+virtual memory management layers.
+We implement the two level page table structure, where the second level
+page table entries are dynamically allocated when the user accesses an unallocated virtual memory.
+Page table 0 is reserved for kernel page table and the whole page table is set to an identity map.
+For every process's page table, we map the low memory as an identity map with kernel only permission,
+so that we each process traps into the kernel, we no longer need to switch to the kernel page table, 
+but can still access kernel data natively via memory access.
+
+The top section of Figure \ref{fig:ptable_v} shows the implementation of the two level page table.
+The \textsf{PTPool} is a list of page directory entries for each of the process and the kernel (page number 0).
+Since we map many portion of various page tables to identity maps, we statically allocate one page table entry
+structure (\textsf{IDPMap} in the Figure), and simply map its address to every page directory entry where
+we would like to set to the identity mapping.
+The bottom section of the Figure shows the abstract logical representation of the page table structure.
+As shown in the figure, a page table is a partial map from page directory index to page directory entry.
+Each page directory entry is either mapped to proper page table entry (\textsf{PDEValid}),
+mapped to an identity map (\textsf{PDEID}), remaining unallocated (\textsf{PDEUnPresent}), or uninitialized or invalid (\textsf{PDEUndef}).
+A page table entry is either mapped to a valid address with proper permission (\textsf{PTEValid}), remaining unmapped (\textsf{PTEUnPresent}),
+or uninitialized or invalid (\textsf{PTEUndef}).
+
+In the following subsections, we introduce each individual layer interfaces for verification of various
+virtual memory management code modules.
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/ptable.v}
@@ -366,17 +401,44 @@ the $palloc$ function reasonably easily with the automation engine.
 	\label{fig:ptable_getter_setter2_v}
 \end{figure}
 
-...
+To follow our mantra, we first perform data abstraction to abstract the in-memory
+page table structure into the logical page table map shown in Figure \ref{fig:ptable_v},
+and introduce the getter and setter methods.
+Implementations of those functions are shown in Figure \ref{fig:ptable_getter_setter_c}.
+Note that in CompCert memory model, integers and pointers are two different incompatible
+types and one cannot be casted to the other. Thus, in order to add the permission bits
+to the end of the page directory entry address, we have to rely on the pointer arithmetic.
+Since the permissions are not always the multiple of four, we implement the \textsf{PTPool}
+as arrays of \textsf{char} so that we can add arbitrary permissions to the addresses via
+pointer arithmetic.
+
+Figure \ref{fig:ptable_getter_setter_v} and \ref{fig:ptable_getter_setter2_v} shows the
+specifications of the corresponding functions that manipulating the abstract page tables mappings.
+Note that the specification also validates that the arguments passed in are within the proper range
+and get stuck if not, even though in the implementation, we do not perform this check.
+This can make sure that we always pass in valid arguments, without actually hindering the performance
+by doing the check at run time.
 
 \paragraph{Layer Interface MPTOp}
+
+On top of the MPTIntro, we introduce a new layer interface and implement
+slightly higher level functions reading and writing the page table mappings that directly
+take the virtual address as argument (see Figure \ref{fig:ptable_op_c}).
+
+In addition, we also introduce the function to initialize the \textsf{IDPMap} as a identity map,
+with the implementation shown in Figure \ref{fig:idpde_init_c}, and the specification shown
+in Figure \ref{fig:idpde_init_v}.
+
+Despite the nested while loop, the verification of the \textsf{idpde\_init} is reasonably
+intuitive and can be performed similarly to other functions with loops as before.
+As in this layer, our initialization method also initializes the \textsf{IDPMap}, we can
+introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptableop.c}
 	\caption{The functions operates on page table in C}
 	\label{fig:ptable_op_c}
 \end{figure}
-
-...
 
 
 \begin{figure}
