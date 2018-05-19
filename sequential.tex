@@ -357,7 +357,7 @@ We implement the two level page table structure, where the second level
 page table entries are dynamically allocated when the user accesses an unallocated virtual memory.
 Page table 0 is reserved for kernel page table and the whole page table is set to an identity map.
 For every process's page table, we map the low memory as an identity map with kernel only permission,
-so that we each process traps into the kernel, we no longer need to switch to the kernel page table, 
+so that when each process traps into the kernel, we no longer need to switch to the kernel page table, 
 but can still access kernel data natively via memory access.
 
 The top section of Figure \ref{fig:ptable_v} shows the implementation of the two level page table.
@@ -410,12 +410,12 @@ types and one cannot be casted to the other. Thus, in order to add the permissio
 to the end of the page directory entry address, we have to rely on the pointer arithmetic.
 Since the permissions are not always the multiple of four, we implement the \textsf{PTPool}
 as arrays of \textsf{char} so that we can add arbitrary permissions to the addresses via
-pointer arithmetic.
+pointer arithmetic of \textsf{char *}.
 
 Figure \ref{fig:ptable_getter_setter_v} and \ref{fig:ptable_getter_setter2_v} shows the
 specifications of the corresponding functions that manipulating the abstract page tables mappings.
 Note that the specification also validates that the arguments passed in are within the proper range
-and get stuck if not, even though in the implementation, we do not perform this check.
+and gets stuck if not, even though in the implementation, we do not perform this check.
 This can make sure that we always pass in valid arguments, without actually hindering the performance
 by doing the check at run time.
 
@@ -455,13 +455,16 @@ introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 
 \paragraph{Layer Interface MPTCommon}
 
+In this layer interface, we further introduce a higher level functions to allocate and free the first level page directory entries.
+In addition, the initialization function of page tables is added to initialize the low memory section as identity map with kernel-only
+permission, and mark the rest of sections as unallocated.
+Their implementations are shown in Figure \ref{fig:ptablecomm_c}, and specifications are presented in Figure \ref{fig:ptablecomm_v}.
+
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptablecomm.c}
 	\caption{Page allocation and initialization functions in C}
 	\label{fig:ptablecomm_c}
 \end{figure}
-
-...
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/ptablecomm.v}
@@ -469,15 +472,20 @@ introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 	\label{fig:ptablecomm_v}
 \end{figure}
 
+The verification of these method are similar to the ones presented before containing the loops, and are not detailed here.
+
 \paragraph{Layer Interface MPTKern}
+
+Next, we introduce the two primitives \textsf{pt\_insert} and \textsf{pt\_rmv} that links and unlinks the provided virtual and physical
+pages, and introduce a new initialization function that further initializes the high memory section of the page table 0 (kernel page table)
+to the identity map, so that the whole page table 0 is the identity map. Their implementations are shown in Figure
+\ref{fig:ptablekern_c}, and part of specifications can be found in Figure \ref{fig:ptablekern_v}.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptablekern.c}
 	\caption{Page allocation and initialization functions in C}
 	\label{fig:ptablekern_c}
 \end{figure}
-
-...
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/ptablekern.v}
@@ -487,13 +495,17 @@ introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 
 \paragraph{Layer Interface MPTInit}
 
+Finally, in this layer interface MPTInit, we introduce the main initialization function of the page table
+\textsf{pt\_init}, where it first calls \textsf{pt\_init\_kern} in interface MPTKern to initialize the 
+page table structure properly, sets the current page table (CR3) to page table 0, then enable
+the paging (see Figure \ref{fig:ptinit_c}).
+The specification of function \textsf{pt\_init} is shown in Figure \ref{fig:ptinit_v}.
+
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptinit.c}
 	\caption{Implementation of main page table initialization function in C}
 	\label{fig:ptinit_c}
 \end{figure}
-
-...
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/ptinit.v}
@@ -501,6 +513,7 @@ introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 	\label{fig:ptinit_v}
 \end{figure}
 
+At this point, we now introduce the main invariants for the page table structure as follows.
 
 \begin{invariant}[Page Table Valid]
 \begin{itemize}
@@ -511,24 +524,27 @@ introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 \end{invariant}
 
 \paragraph{Layer Interface MPTBit}
-...
 
-...
-
+Now that we have the code to initialize and manipulate the page table structure, in this layer interface,
+we introduce a bit map of size \textsf{NUM\_PROC}, to record whether each process is already spawn or
+free. We introduce a getter function \textsf{is\_used}, and a setter \textsf{set\_bit} in this layer as well to
+read and write to the new bitmap.
 
 
 \paragraph{Layer Interface MPTNew}
+
+We introduce two functions in the layer interface MPTNew.
+First, we introduce a new initialization function \textsf{pmap\_init} which in addition initializes the new bitmap introduced in MPTBit.
+As shown in Figure \ref{fig:ptnew_c}, only the 0'th bit is marked as used (reserved for the kernel process).
+Second, we introduce the function \textsf{pt\_resv} to allocate a new page and maps that page to the required virtual address.
+This function is later called by the page fault handler when the user tries to access a valid virtual address that is not yet allocated,
+and \textsf{pt\_resv} dynamically allocates and maps a new physical page for the user at the corresponding virtual address.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptnew.c}
 	\caption{Implementations of \texttt{pt\_resv} and \texttt{pmap\_init} in C}
 	\label{fig:ptnew_c}
 \end{figure}
-
-...
-
-initializes \textsf{pb} field of abstract states.
-
 
 
 \section{Thread Management}

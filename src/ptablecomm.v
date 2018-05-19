@@ -7,7 +7,7 @@ Function ptAllocPDE_spec  (nn vadr: Z) (adt: RData): option (RData * Z) :=
        match first_free (AT adt) (nps adt) with
         | inleft (exist pi _) =>
             Some (adt {AT: ZMap.set pi (ATValid true ATNorm) (AT adt)}
-                 {ptpool: (ZMap.set nn (ZMap.set (PDX vadr) (PDEValid pi real_init_PTE)
+                 {ptpool: (ZMap.set nn (ZMap.set (PDX vadr) (PDEValid pi initial_PTE)
                  (ZMap.get nn (ptpool adt))) (ptpool adt))} , pi)
         | _ => Some (adt, 0) 
        end
