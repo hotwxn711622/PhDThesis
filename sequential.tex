@@ -533,12 +533,13 @@ read and write to the new bitmap.
 
 \paragraph{Layer Interface MPTNew}
 
-We introduce two functions in the layer interface MPTNew.
+We introduce a couple of new functions in the layer interface MPTNew.
 First, we introduce a new initialization function \textsf{pmap\_init} which in addition initializes the new bitmap introduced in MPTBit.
 As shown in Figure \ref{fig:ptnew_c}, only the 0'th bit is marked as used (reserved for the kernel process).
 Second, we introduce the function \textsf{pt\_resv} to allocate a new page and maps that page to the required virtual address.
 This function is later called by the page fault handler when the user tries to access a valid virtual address that is not yet allocated,
 and \textsf{pt\_resv} dynamically allocates and maps a new physical page for the user at the corresponding virtual address.
+Last, we also introduce a new primitive \textsf{pt\_new} that returns the first unused process ID based on the bitmap.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptnew.c}
@@ -551,23 +552,33 @@ and \textsf{pt\_resv} dynamically allocates and maps a new physical page for the
 
 \paragraph{Layer Interface PKContext}
 
+In this layer interface, we introduce the kernel context for each kernel thread (shown in Figure \ref{fig:kctxt_c}),
+together with the two setter functions to set the \textsf{SP} and \textsf{RA} field of the context.
+In addition, we also introduce the \textsf{kctx\_switch} function implemented in assembly for switching two kernel contexts.
+
 \begin{figure}
 	\lstinputlisting [language=C] {src/kctxt.c}
 	\caption{Implementation of kernel context in C}
 	\label{fig:kctxt_c}
 \end{figure}
 
-\textsf{kctx\_switch}
 
 \paragraph{Layer Interface PKContextNew}
+
+Next, the layer interface PKContextNew introduces one new primitive \textsf{kctxt\_new}, which finds the next
+available process, and sets the stack pointer and the function entry pointer properly in its kernel context.
+As shown in Figure \ref{fig:kctxtnew_c}, we statically allocate one page for each potential process for its kernel
+stack, and sets the stack pointer of each new process to be the top of corresponding stack page.
+The $-4$ subtracted from the stack top is the typical safety enhancement to make sure we are less likely to
+exceed the stack boundary when we manipulate the stack, and it is not really necessary here as our kernel
+is formally verified for absence of stack overflow.
+The abstract specification of \textsf{kctxt\_new} is shown in Figure \ref{fig:kctxtnew_v}.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/kctxtnew.c}
 	\caption{Implementation of \textsf{kctxt\_new} in C}
 	\label{fig:kctxtnew_c}
 \end{figure}
-
-...
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/kctxtnew.v}
@@ -578,11 +589,34 @@ and \textsf{pt\_resv} dynamically allocates and maps a new physical page for the
 
 \paragraph{Layer Interface PThreadIntro}
 
+The layer interface PThreadIntro implements and abstracts the thread control block (TCB).
+As shown in Figure \ref{fig:tcb_c}, we statically allocate a pool of TCBs for the number of
+processes. Each TCB contains the state of the corresponding thread, and the indexes of
+the previous and next TCBs in the TCB pool. This way, we can link TCBs in both directions
+to form bi-directional thread queues. As shown in the figure, PThreadIntro also implements
+a list of getter and setter primitives to manipulate the logical TCB pool.
+
 \begin{figure}
 	\lstinputlisting [language=C] {src/tcb.c}
 	\caption{Implementation of thread control block in C}
 	\label{fig:tcb_c}
 \end{figure}
+
+\paragraph{Layer Interface PThreadInit}
+
+In this layer interface, we introduce the new initialization function \textsf{thread\_init} to initialize
+the logical TCB pool. As shown in Figure \ref{fig:tcb_c}, the thread state in every TCB is marked
+dead, and the previous and next TCB indexes are set to the invalid index.
+
+\paragraph{Layer Interface PQueueIntro}
+
+PQueueIntro introduces the abstract thread queues. As shown in Figure \ref{fig:tdq_c}, a thread queue
+is represented simply as pair of indexes in the static TCB pool representing the head and tail TCBs.
+Here, the \textsf{num\_chan} represents the number of IPC channels we support in the kernel.
+We allocate one thread sleeping queue per IPC channel for the threads waiting on that channel,
+and one additional thread queue for the ready queue used by the thread scheduler.
+We also introduce a list of getter and setter functions to manipulate the head and tail of the abstract
+queue as shown in Figure \ref{fig:tdq_c}.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/tdq.c}
@@ -590,18 +624,11 @@ and \textsf{pt\_resv} dynamically allocates and maps a new physical page for the
 	\label{fig:tdq_c}
 \end{figure}
 
-\paragraph{Layer Interface PThreadInit}
-...
-
-...
-
-
-\paragraph{Layer Interface PQueueIntro}
-...
-
-...
-
 \paragraph{Layer Interface PQueueInit}
+
+In layer interface PQueueInit, we introduce the main \textsf{enqueue} and \textsf{dequeue} operators
+to push and pop TCB into and from the queue (see Figure \ref{fig:queue_ops_c}), and also a new
+initialization primitive \textsf{tdqueue\_init} to initialize each queue as empty (see Figure \ref{fig:tdq_c}).
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/queue_ops.c}
@@ -609,12 +636,41 @@ and \textsf{pt\_resv} dynamically allocates and maps a new physical page for the
 	\label{fig:queue_ops_c}
 \end{figure}
 
+\paragraph{Layer Interface PAbQueue}
+
+The verification of the thread queue is achieved in a very similar way to
+verification of console circular buffer illustrated as running example in Chapter \ref{chapter:framework}.
+Figure \ref{fig:abq_v} shows the ultimate abstract representation of the abstract TCB and the thread queue.
+As shown in the figure, an abstract TCB is either undefined (uninitialized) or a valid TCB with a thread state
+and an index to the list of abstract queues (with value $-1$ indicating it is not in any of the queues).
+A valid abstract queue is simply a list of indexes of TCBs in the abstract TCB pool.
+Similar to the techniques presented in Chapter \ref{chapter:framework}, before this layer interface
+PAbQueue, we represent the abstract TCB and the queue in a way very similar to their implementations in C, i.e.,
+using the list and indexes, and all the getter, setter, enqueue, and dequeue operations are all specified using
+this intermediate abstract representations. The benefit is that this makes the verification of the TCB and queue
+manipulating functions easier as their specifications and implementations are relatively close.
+Once this is achieved, in this layer interface PAbQueue, we turn the abstract TCB and queue representation
+into the ultimate logical one shown in Figure \ref{fig:abq_v}, and turn all the specifications to use this representation.
+Then we verify that the layer interface PQueueInit and PAbQueue are contextual equivalent, without involving any
+reasoning on the actual code, completely at logical level.
+The specifications of \textsf{enqueue} and \textsf{dequeue} using the more abstract representations are
+shown in Figure \ref{fig:abq_v}. Here, the specifications are much simpler and readerable comparing to their
+specifications in the layer interface PQueueInit, as the queue is presented as a simple list with less number of
+indirection.
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/abq.v}
 	\caption{Specification of abstract queue in Coq}
 	\label{fig:abq_v}
 \end{figure}
+
+In this layer, we also introduce following set of layer invariants. Note that we do not need to include unnecessary
+invariants in PQueueInit because they would have been much more complex using the more concrete
+representations and we would not be able to prove the contextual refinement if PQueueInit does not satisfy
+the invariants corresponding to the ones we added in PAbQueue layer interface here.
+
+\begin{invariant}[AbTCB Valid]
+\end{invariant}
 
 \paragraph{Layer Interface PThreadSched}
 

@@ -1,5 +1,5 @@
-uint kctxt_new(void * entry, uint id, uint quota) {
-    uint proc_index = pt_new(id, quota);
+uint kctxt_new(void * entry) {
+    uint proc_index = pt_new();
     if (proc_index == num_proc) {
         return num_proc;
     }
