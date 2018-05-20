@@ -670,9 +670,39 @@ representations and we would not be able to prove the contextual refinement if P
 the invariants corresponding to the ones we added in PAbQueue layer interface here.
 
 \begin{invariant}[AbTCB Valid]
+If $\textsf{init}=\textsf{true}$, then every TCB is valid with $-1\le b \le \textsf{num\_chan}$.
+\end{invariant}
+
+\begin{invariant}[AbQ Valid]
+Every index $i$ in any queue has range $0\le i < \textsf{num\_proc}$.
+\end{invariant}
+
+\begin{invariant}[Dead TCB Not In Queue]
+The index of any unallocated process is not in any queue, i.e., $b=-1$ in corresponding TCB.
+\end{invariant}
+
+\begin{invariant}[At Most One Queue]
+For every TCB with index $i$, if $b\neq -1$, then there is exactly one $i$ in the $b'th$ abstract queue.
+\end{invariant}
+
+\begin{invariant}[Consistent In Queue]
+For every queue, and every index $i$ in the queue, $b=i$ in the $i'th$ TCB.
 \end{invariant}
 
 \paragraph{Layer Interface PThreadSched}
+
+In PThreadSched, we introduce part of scheduler primitives and one initialization primitive shown in
+Figure \ref{fig:thread_c}. The function \textsf{thread\_spawn} first allocates a new kernel context,
+sets its state to \textsf{READY}, puts it to the scheduler ready queue \footnote{Recall that
+the last queue with index \textsf{num\_chan} is for the ready queue, while the rest is for the
+IPC sleeping queues}, and returns the new process ID.
+The function \textsf{thread\_wakeup} pops the index of the first sleeping process from the corresponding
+sleeping queue indexed by the \textsf{channel\_index} if the queue is not empty, sets its state to be \textsf{READY},
+and inserts it to the scheduler's ready queue so that it can be scheduled.
+The new initialization primitive calls the previous initialization primitive \textsf{tdqueue\_init}, marks
+the current thread ID to be 0 (kernel), and marks the kernel thread as running.
+The specifications of \textsf{thread\_spawn} and \textsf{thread\_wakeup} primitives can be found
+in Figure \ref{fig:thread_v}. The verification is trivial as they are mostly straight line code.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/thread.c}
@@ -681,19 +711,31 @@ the invariants corresponding to the ones we added in PAbQueue layer interface he
 \end{figure}
 
 \begin{figure}
-	\lstinputlisting [language={[x86masm]Assembler}] {src/thread.s}
-	\caption{Implementation of thread scheduler in assembly}
-	\label{fig:thread_s}
-\end{figure}
-
-
-
-\begin{figure}
 	\lstinputlisting [language=Coq] {src/thread.v}
 	\caption{Specification of thread management operations in Coq}
 	\label{fig:thread_v}
 \end{figure}
 
+In addition to the primitives we introduced above, PThreadSched also includes another
+scheduler related primitive \textsf{thread\_sched}.
+As shown in Figure \ref{fig:thread_s}, \textsf{thread\_sched} is implemented in
+assembly instead of C, because it calls the function \textsf{kctxt\_switch} which
+is implemented in assembly. The implementation shown in Figure \ref{fig:thread_s}
+is in the standard assembly source format that we present for the ease of readability,
+while the actual source code in Coq is shown in Figure \ref{fig:thread_sched_v}.
+Figure \ref{fig:thread_sched_v} also shows is specification.
+From the assembly source code, we can find that the code is merely a straight line
+code with a list of function calls with proper arguments prepared. This is done in purpose to
+encapsulate all the complex loops and branching logic within verified functions implemented in C,
+and make the actual function implemented in assembly simple. Thus, even though we do not
+have as mature automation support as we have in verifying C code, the verification of \textsf{thread\_sched}
+assembly implementation against its specification in Figure \ref{fig:thread_sched_v} is accessible.
+
+\begin{figure}
+	\lstinputlisting [language={[x86masm]Assembler}] {src/thread.s}
+	\caption{Implementation of thread scheduler in assembly}
+	\label{fig:thread_s}
+\end{figure}
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/thread_sched.v}
@@ -703,6 +745,10 @@ the invariants corresponding to the ones we added in PAbQueue layer interface he
 
 \paragraph{Layer Interface PThread}
 
+In this layer interface, we introduce the two main scheduler functions \textsf{thread\_yield} and
+\textsf{thread\_sleep}. They are both implemented in assembly as they both call \textsf{thread\_sched}.
+As an example, the implementation of \textsf{thread\_yield} is shown in Figure \ref{fig:scheduler_s}, and
+its specification is shown in Figure \ref{fig:scheduler_v}.
 
 \begin{figure}
 	\lstinputlisting [language={[x86masm]Assembler}] {src/scheduler.s}
@@ -716,24 +762,30 @@ the invariants corresponding to the ones we added in PAbQueue layer interface he
 	\label{fig:scheduler_v}
 \end{figure}
 
+At PThread layer, we have full set of thread scheduling primitives, and we no longer expose the low
+level primitives manipulating thread queues directly. Thus, we now introduce a stronger invariant
+to our abstract TCB as shown below.
+
+\begin{invariant}[AbTCB Valid Strong]
+For every valid TCB (\textsf{AbTCBValid s b}), $b=-1$ if $s=\textsf{RUN}$ or $s=\textsf{DEAD}$,
+$0\le b < \textsf{num\_chan}$ when $s=\textsf{SLEEP}$, and $b=\textsf{num\_chan}$ when $s=\textsf{READY}$.
+\end{invariant}
+
+
 \section{Single-Copy Asynchronous IPC}
 
-\paragraph{Layer Interface PIPCIntro}
-...
-
-...
-
-\paragraph{Layer Interface PIPC}
-...
-
-...
+We have implemented two additional layer interface PIPCIntro and PIPC on top of the PThread layer for a single-copy
+synchronous inter-process communication (IPC) protocol. 
+Every IPC message contains the sender's virtual address of the sender message buffer, and the number of bytes sent.
+The layer interface PIPCIntro abstracts the IPC message into abstract buffer and introduces the getter and setter primitives.
+The layer PIPC introduces the main \textsf{sync\_sendto\_chan} and \textsf{sync\_receive\_chan} primitives to send and receive
+messages between processes synchronously. 
 
 \section{Process Management}
 
 \paragraph{Layer Interface PUCtxtIntro}
-...
 
-...
+
 
 \paragraph{Layer Interface PProc}
 ...
