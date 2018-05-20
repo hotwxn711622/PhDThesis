@@ -785,23 +785,33 @@ messages between processes synchronously.
 
 \paragraph{Layer Interface PUCtxtIntro}
 
-
+In PUCtxtIntro, we introduce the user context that contains the list of user registers that we save
+and restore when user traps into the kernel or jumps back to the user space, in addition to
+the primitives to actually save and restore the user registers. Note that we only save and restore the second
+half in software, as the first half is automatically saved and restored by the hardware.
 
 \paragraph{Layer Interface PProc}
-...
 
-...
+In this layer interface, we introduce the primitive \textsf{proc\_create} that spawns a new process,
+where it spawns the managing kernel thread via \textsf{thread\_spawn}, loads ELF, and sets proper
+user context using the setter primitives from the PUCtxtIntro layer.
 
 \section{Intel Virtualization Support}
 
+On top of PProc, we implement the hardware-assisted virtualization technology Intel VT-x.
+
 \paragraph{Layer Interface VEPTIntro}
+
+In VEPTIntro, we introduce the four level Extended Page Table (EPT). The concrete implementation in C
+and the corresponding abstract logical representation is shown in Figure \ref{fig:ept_v}.
+This is similar to the two level in-kernel page table structure except it has two additional levels.
+The corresponding getter and setter functions introduced are shown in Figure \ref{fig:ept_c}.
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/ept.v}
 	\caption{Concrete and abstract EPT}
 	\label{fig:ept_v}
 \end{figure}
-
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/ept.c}
