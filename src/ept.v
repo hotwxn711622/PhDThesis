@@ -5,7 +5,7 @@ struct EPTStruct {
     unsigned long long ptab[4][512][512];
 };
 
-extern struct EPT_LOCStruct EPT;
+extern struct EPTStruct EPT;
 
 ------------------------------------------------
 

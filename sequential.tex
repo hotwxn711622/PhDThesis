@@ -654,7 +654,7 @@ into the ultimate logical one shown in Figure \ref{fig:abq_v}, and turn all the 
 Then we verify that the layer interface PQueueInit and PAbQueue are contextual equivalent, without involving any
 reasoning on the actual code, completely at logical level.
 The specifications of \textsf{enqueue} and \textsf{dequeue} using the more abstract representations are
-shown in Figure \ref{fig:abq_v}. Here, the specifications are much simpler and readerable comparing to their
+shown in Figure \ref{fig:abq_v}. Here, the specifications are much simpler and readable comparing to their
 specifications in the layer interface PQueueInit, as the queue is presented as a simple list with less number of
 indirection.
 
@@ -819,8 +819,12 @@ The corresponding getter and setter functions introduced are shown in Figure \re
 	\label{fig:ept_c}
 \end{figure}
 
-\paragraph{Layer Interface VEPTInit}
+\paragraph{Layer Interface VEPTInit and VEPTOp}
 
+In these two layer interfaces, we introduce several primitives to manipulate the extended page table entries.
+In addition, we also introduce a new initialization primitive to properly initialize the extended page
+table. The implementations of these primitives are shown in Figure \ref{fig:eptop_c} and
+Figure \ref{fig:eptinit_c}.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/eptop.c}
@@ -828,52 +832,45 @@ The corresponding getter and setter functions introduced are shown in Figure \re
 	\label{fig:eptop_c}
 \end{figure}
 
-\paragraph{Layer Interface VEPTOp}
-
 \begin{figure}
 	\lstinputlisting [language=C] {src/eptinit.c}
 	\caption{Implementation of EPT operations in C}
 	\label{fig:eptinit_c}
 \end{figure}
 
-\paragraph{Layer Interface VVMCSIntro}
-...
+\paragraph{Layer Interface VVMCSIntro and VVMCSInit}
 
-...
+These two layer interfaces are used to abstract and properly initialize the Virtual Machine Control Structure (VMCS).
 
-\paragraph{Layer Interface VVMCSInit}
-...
+\paragraph{Layer Interface VVMXIntro and VVMXInit}
 
-...
-
-\paragraph{Layer Interface VVMXIntro}
-...
-
-...
-
-\paragraph{Layer Interface VVMXInit}
-...
-
-...
+In these two layers, we introduce the Virtual Machine Extension meta data (VMX), and relevant primitives to initialize
+and manipulate VMX. We also implement two \textsf{vm\_enter} and \textsf{vm\_exit} primitives to enter and exit
+from the host mode.
 
 \section{Trap Handling}
 
 \paragraph{Layer Interface TTrapArg}
-...
 
-...
+In TTrapArg, we implement a list of primitives to retrieve the system call arguments and return values.
+We use the convention such that we set the system call number to the register \textsf{EAX} when we trap into the kernel,
+and set the system call arguments using the registers \textsf{EBX}, \textsf{ECX}, \textsf{EDX}, \textsf{ESI}, and \textsf{EDI}
+in order. When we return back to user from the system call handler, we set the error number in the register \textsf{EAX},
+and the return values in the registers \textsf{EBX}, \textsf{ECX}, \textsf{EDX}, \textsf{ESI}, and \textsf{EDI}
+in order.
 
 \paragraph{Layer Interface TTrap}
-...
 
-...
+The layer interface TTrap introduces the list of system call handlers that each retrieves the relevant arguments
+using the argument convention above, calls into the corresponding underlying handler, and sets the return values
+to the relevant registers based upon return value conventions described in the TTrapArg layer interface.
+
+In addition, in each system call handler, we validate all the arguments from the user to make sure they are all
+within the expected range. At this level, we verify that the semantics of each system call handler does not get stuck (safety
+of the kernel).
 
 \paragraph{Layer Interface TDispatch}
-...
 
-...
+Finally, we introduce the system call dispatcher that retrieves the system call number from the register
+\textsf{EAX} in the user context, and calls into the corresponding system call handler defined in the TTrap layer.
 
-\paragraph{Layer Interface TSyscall}
-...
-
-...

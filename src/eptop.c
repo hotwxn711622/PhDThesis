@@ -1,3 +1,7 @@
+#define EPT_ADDR_MASK 4294963200u
+#define EPT_PG_IGNORE_PAT_or_PERM 71
+#define EPT_PG_MEMORY_TYPE 3
+
 uint ept_get_page_entry(uint gpa) {
   uint pdpt = gpa / (512 * 512) % 512;
   uint pdir = gpa / 512 % 512;
