@@ -320,13 +320,15 @@ code verification, and separately perform this proof afterwards at a more suitab
 
 Our usual approach on separating complex logical reasoning out of code proof is to have an intermediate
 logical specification that is very similar to the implementation. Similarly, we have designed an auxiliary predicate
-\textsf{WaitTicket} that mimics the loop, where it repeated generates the \textsf{E\_GET\_NOW}
-event until the \textsf{now} fields becomes the same as the provided ticket number. 
+\textsf{WaitTicket} that mimics the loop in the code, where it repeatedly generates the \textsf{E\_GET\_NOW}
+event until the \textsf{now} field becomes the same as the provided ticket number. 
 On the other hand, we cannot have a specification that potentially does not terminate.
 Thus, \textsf{WaitTicket} also takes an integer \text{bound} which acts as the upper bounce on the
 number of times \textsf{WaitTicket} can loop, and it gets stuck if the \textsf{now} field
 does not reach its ticket number within the bound.
-The intermediate specification is shown in Figure \ref{fig:acq_lock_concrete_v}.
+The definition of \textsf{WaitTicket} is shown in Figure \ref{fig:wait_ticket_v}.
+
+The intermediate specification defined using \textsf{WaitTicket} is shown in Figure \ref{fig:acq_lock_concrete_v}.
 Here, it first synchronizes its event list by querying the environmental context, adds the
 \textsf{E\_INC\_TICKET} event to the list (corresponding to the call to \textsf{FAI\_ticket} in the code),
 grabs the current ticket and number, and waits for the turn using the \textsf{WaitTicket} predicate
@@ -360,16 +362,20 @@ we increment again from its maximum value. That is why we use the $!=$ operator 
 of $<=$ in Figure \ref{fig:ticket_lock_c}.
 Again, to split out the reasoning of finite precision integer mappings, we use a separate
 replay function \textsf{ReplayTicketWraparound} in the \textit{low level specification} of
-\textsf{acq\_lock} that is used against the code verification, and perform the mapping between
+\textsf{acq\_lock} that is used against the code verification, which also wraps the \textsf{ticket}
+and \textsf{now} fields back to zero when they reach their maximum.
+Then we separately perform the mapping between
 the finite and infinite precision integers during the refinement proof. This way, we no longer
-need to worry about the mapping repeatedly during the intermediate code proofs, and during
+need to worry about the mapping repeatedly during the intermediate code proofs. During
 the forward simulation refinement proof, this proof can be performed once for all trivially as
 we can just map the numbers from high level specifications into their wrapped versions
 in the low level specifications.
 
 Next, we show how we perform the actual functional verification using our automation engine
 against the low level specification, which is already extremely close to the implementation.
-
+The major challenge here is to get the proper loop invariant to prove the termination of the while
+loop. Before we present the loop invariant, we first show the list of lemmas we have developed
+to assist the loop invariant preservation proof, listed in Figure \ref{fig:acq_lock_lemmas_v}.
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/acq_lock_lemmas.v}
@@ -377,7 +383,22 @@ against the low level specification, which is already extremely close to the imp
 	\label{fig:acq_lock_lemmas_v}
 \end{figure}
 
-...
+Note the predicate \textsf{WaitTicketWraparound} gets stuck when the bound is not sufficiently large.
+On the other hand, we know the provided bound is large enough as we know the specification does
+not get stuck in the precondition. Thus, we would need to repeated prove that \textsf{WaitTicketWraparound}
+does not get stuck while we verify the loop. Instead, as define another predicate
+\textsf{WaitTicketWraparoundSafe} where it returns the current event list when the counter gets down
+to zero, instead of getting stuck. We use this definition instead for verification of the loop, as this
+predicate never gets stuck by definition, and returns the same list when the bound is sufficiently large (which
+we know it is). The lemma \textsf{WaitTicketWraparoundStops} shown in Figure \ref{fig:acq_lock_lemmas_v}
+is used in the end to convert our post condition back into the one using the proper \textsf{WaitTicketWraparound}.
+It states that if we could wait for our turn with sufficiently large bound, then there should be a least
+upper bound no bigger than the current bound that both original and safe versions would lead to the same event list.
+The lemma \textsf{WaitTicketWraparoundImpliesSafe} shows that for a valid bound, both the original
+and safe versions return the same list, and the lemma \textsf{WaitTicketWraparoundSafeInv}
+prevents the inversion principle for the predicate \textsf{WaitTicketWraparoundSafe}.
+Finally, the lemmas \textsf{WaitTicketWraparoundSafeNeq} and \textsf{WaitTicketWraparoundEq}
+describe the situation when we have short or large bound, respectively.
 
 Let the integer $K$ indicate the smallest bound that would allow the \textsf{WaitTicketWraparound}
 to reach its own turn (not to get stuck). We know such $K$ exist from the fact that the specification
@@ -404,23 +425,18 @@ The fact that the new abstract state $\textsf{adt}'$ after one loop iteration ha
 waiting with the current loop counter would infer that the next loop counter is one greater than the current
 loop counter, thus we can derive the termination in addition with above monotonically decreasing termination
 metric.
-
 With this loop invariant and termination metric, together with the lemmas for verifying the loop body,
 we can discharge the remaining proofs with our automation engine. 
-This is one of the typical example where complex logic is involved in reasoning about correctness
-of a very simple and short piece of code, which involved significantly more large number of proof
-script lines than the actual source code. Yet, by carefully tackling various challenges in isolation, we
-can still manage to verify the ticket lock implementation relatively easily using our automation engine.
 
-
-Computations where $k$ reaches 0 are considered stuck, and our
-ultimate theorem is about safe programs (programs that does not get stuck).
-Thus, to prove the \textbf{starvation-freedom} of ticket lock,
-we have to know what number $\calwait(l,c)$ is sufficiently large.
-We make following two assumptions. Fist, the hardware scheduling transition
+Next, we tackle one last remaining proof obligation, i.e., to find out a sufficiently large bound
+that would never let the intermediate acquire lock specification get stuck.
+This is necessary because we eventually need a specification which does not take a bound
+as argument, as the user would never be able to explicitly give us the bound.
+To prove that such number exists, we make following two assumptions. 
+First, the hardware scheduling transition
 is fair, i.e., there exists a number $h$ such that the nondeterministic execution is
 guaranteed to get back to the previous CPU within $h$ hardware steps.
-Second, every CPU who acquired the ticket lock released the lock within
+Second, every CPU who acquires the ticket lock releases the lock within
 $r$ steps for some constant $r$. This is also a reasonable assumption because if someone
 holding the lock never releases the lock, no one else can ever obtain the lock
 again. Both of these assumptions are formally enforced by introducing
@@ -432,55 +448,31 @@ other CPUs were in the queue ahead of the current CPU, they would eventually
 all release the lock within these many steps and no one can take the lock
 bypassing the currently CPU's turn by definition of the ticket lock.
 
+This is one of the typical example where complex logic is involved in reasoning about correctness
+of a very simple and short piece of C code, which involves significantly larger number of proof
+scripts than the actual source code. Yet, by carefully tackling various challenges in isolation, we
+can still manage to verify the ticket lock implementation relatively easily using our automation engine.
 
+\paragraph{Layer Interface TicketLock}
 
-\vspace{3pt}
-\noindent\textbf{Step 3 (atomic specification $L_2$)}
-Recall that the specification $\spec_{\acq}$ and $\spec_{\rel}$ in $L_1$
-are not atomic, as they involve potential interleavings in the middle
-(encoded by querying the environmental oracle for external events).
-On the other hand, as clients using the lock, we would treat the lock
-primitives as if they were atomic, even in reality, there could be
-some irrelevant interleaved executions in the middle.
-We achieve this by introducing a new higher layer interface $L_3$ using
-the \emph{log-lift} pattern, which contains atomic specifications
-for $\acq$ and $\rel$ primitives.
+Finally, we introduce a new layer interface where the lock acquire and release
+primitives have the atomic specifications as shown in Figure \ref{fig:ticket_lock_v}.
+At TicketLock, we no longer have any of the low level events shown in previous
+layer interfaces, but two new events \textsf{E\_ACQ\_LOCK} and \textsf{e\_REL\_LOCK},
+generated by the two new lock primitives (see Figure \ref{fig:ticket_lock_v}).
 
-Unlike previous two layers, the new layer $L_3$ does not contain any of
-the low level events, but instead contains two new events
-$\acq(b)$ and $\rel(b)$. The specifications for the two primitives are
-now very simple: they just query the environment context, and then
-introduce one more event.
-
-\begin{mathpar}
-\inferrule{
-    l' = l \cons \oracle(l) \cons c.\acq(b) \\
-}{
- \oracle, c \vdash  \spec_{\acq}([b], l,\any, l')
-}
-\\
-\inferrule{
-  l' = l \cons \oracle(l) \cons c.\rel (b)
-}{
- \oracle, c \vdash  \spec_{\rel}([b], l,\any, l')
-}
-\end{mathpar}
-
-By having these primitives introduce only a single event, clients of the
-lock code can treat the lock operations as completely \emph{atomic}; there is
-no need to consider interleavings of the ``get lock'' execution
-with events from other CPUs. 
-
-In order to prove the contextual refinement between $L_2$ and $L_3$, we
-need to find a function $f$ that can convert $\oracle_2$ to $\oracle_3$,
-and also a refinement relation $R$ that 
-relates the list of events $l_2$ in $L_2$ to the list $l_3$ in $L_3$.
-We map two list of events by mapping $\pull(b)$ in $l_2$ to $\acq(b)$
-in $l_3$, and $\incnow(b)$ to $\rel(b)$,respectively, ignoring all other
-events in $l_2$. Function $f$ can be derived from this relation by
-applying $\oracle_2$ to matching underlay events and converting it to
-the list of overlay events following the same conversion rule.
-Then we finally prove that the refinement holds for every primitive
+In order to prove the contextual refinement between TicketLockOp and
+TicketLock layers, we need to find a function $f$ that can convert
+one environmental context into the other, and also a refinement relation
+$R$ that related the list of events in two layers.
+We map two list of events by mapping \textsf{E\_PULL} in 
+TicketLockOp to \textsf{E\_ACQ\_LOCK} in TicketLock,
+and \textsf{E\_INC\_NOW} to  \textsf{E\_REL\_LOCK},respectively, ignoring all other
+events in TicketLockOp. Function $f$ can be derived from this relation by
+first applying the underlay environmental context in underlay event list,
+and convert the list into the list of overlay events following the same conversion
+rule as in the refinement relation.
+Then we finally prove that the refinement relation is preserved for every primitive
 over this setting.
 This simulation proof is only between specifications, and in the end,
 we can compose proofs of individual primitives to derive the full
