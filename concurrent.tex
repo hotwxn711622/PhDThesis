@@ -529,9 +529,59 @@ at the overlay.
 
 \section{Supporting Multiple Virtual Machines}
 
-\subsection{Extending The Single VM Implementation}
+Given that we can reason about concurrent programs, we have extend the OS kernel
+presented in Chapter \ref{chapter:sequential} into a concurrent kernel that can boot on
+multiple CPUs.  On top of that, we also have extended the kernel's virtualization support
+such that it can boot multiple virtual machines.
+As shown in Figure \ref{fig:multivm_v}, every VM related data structure is not duplicated
+one per each VM, indexed by the VM ID.
 
-\subsection{Verification Challenges}
+\begin{figure}
+	\lstinputlisting [language=Coq] {src/multivm.v}
+	\caption{One VM data structure per VM}
+	\label{fig:multivm_v}
+\end{figure}
+
+Not all concurrent programs require reasoning on complex interleavings. We have made
+some implementation decisions such that it is reasonable in practice, but can significantly
+reduce the complexity of verification. First, we restrict one VM per CPU. This requirement
+saves us from reasoning various concurrent executions among multiple host programs running
+on the same CPU. Furthermore, since we run single VM per CPU, we use the CPU ID as the VM ID.
+This way, we no longer need to carry along the VM ID to all the VM related primitives (as we always
+know the current CPU ID), and no longer need to introduce a new abstract state for VM IDs (which
+is technically trivial to add, but would have to touch a large number of layers including the memory
+model definitions).
+
+In addition, we have made the following adjustment to support multiple VMs.
+
+\begin{itemize}
+\item every VM related primitives now manipulate the VM data structures corresponding to own
+VM indexed by the current CPU ID,
+\item \textsf{vm\_enter}, \textsf{vm\_exit}, \textsf{vmptrld}, and \textsf{invept} are adjusted
+to properly support own VM indexed by CPU ID, 
+\item we statically allocate one MSR and IO bitmap per VM, and thus need to set proper address in the
+VMCS data structure for that VM during initialization, and
+\item we map each VMCS's EPT root to the right root indexed by CPU ID during initialization.
+\end{itemize}
+
+In addition, in the sequential kernel, we used to statically allocate TSS and GDT for each process.
+In concurrent kernel, we allocate them on each process's stack, and saves the current CPU ID in the stack.
+Thus, the stack in this multi-processor kernel is no longer just a page that can be used merely as free stack.
+THe new stack definition is shown in Figure \ref{fig:kstack_c}. 
+With this change, we would need to set the \textsf{VMCS\_HOST\_TR\_BASE} and the
+\textsf{VMCS\_HOST\_GDTR\_BASE} section in each VMCS structure properly to the right section 
+in each process's stack.
+
+\begin{figure}
+\lstinputlisting [language = C] {src/kstack.c}
+\caption{New stack definition in the multi-processor kernel.}
+\label{fig:kstack_c}
+\end{figure}
+
+Most of these changes are fairly local, and do not propagate to many layer interfaces, and
+allows us to keep majority of existing proofs with minor changes (for example, adding the map lookup
+with current CPU ID), and we manage to derive a concurrent kernel that can boot multiple VMs, without
+the need to perform  complex concurrency reasoning.
 
 \section{Evaluation and Experience}
 \label{sec:kernel}
