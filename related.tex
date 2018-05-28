@@ -38,6 +38,51 @@ On the other hand, we provide automation libraries that assist reasoning on vari
 
 \section{OS Kernel Verification}
 
+Bevier~\cite{bevier89} developed a full correctness proof
+for a highly idealized kernel in an automated theorem prover. The
+Verisoft team~\cite{verisoft07} has done a large body of work aiming
+to verify OS kernels and
+hypervisors~\cite{leinenbach09,alkassar10}. The Verve
+project~\cite{hawblitzel10} managed to prove the type safety of an
+entire kernel by combining the partial correctness proof of a nucleus
+and the type-safety guarantee from a certifying C\# compiler (for the
+rest of the kernel); by using powerful automated proving tools (e.g.,
+Boogie and Z3), Verve managed to certify the nucleus in 9
+person-months.
+Xu~{\em et al} \cite{xu16} developed a new verification framework based on RGSim
+and Feng~{et~al.}'s program logic~\cite{feng08:aim} for reasoning
+about interrupts; they have successfully verified many key modules
+(in C) in the $\mu$C/OS-II kernel.
+
+The seL4 team~\cite{klein2009sel4} was the first to verify the
+correctness and security properties of a high-performance L4-family
+microkernel. Their work is impressive in that most of their proofs
+were done inside a modern mechanized proof
+assistant~\cite{Paulson:Isabelle}.  To make verification easier, they
+introduced an intermediate executable specification to hide C
+specifics. They claim that kernel
+interdependencies led to more complex invariants which consist
+of majority of their proofs. seL4 also does not support multicore
+concurrency with fine-grained locking. 
+We believe that separating out the complex invariants and concurrency
+reasoning from the actual code verification could significantly reduce
+the proof complexity and reduce the amount of repeated proofs.
+
+Hawblitzel~{\em et al}~\cite{ironclad14} has developed a set
+of new tools based on the Dafny verifier~\cite{dafny10} and Z3 SMT
+solver~\cite{moura08}, and applied them to build their Ironclad system
+which includes a verified kernel (based on Verve~\cite{hawblitzel10}),
+verified drivers, verified system and crypto libraries, and several
+applications.  This is another impressive effort that advances the
+frontier of system software verification. Ironclad, however, only
+proves the partial correctness property (at the assembly level), which
+is weaker than the total correctness properties proved by seL4 and
+mCertiKOS. 
+Their device models are also at a very high level, thus many low level
+drivers are not verified. Ironclad also differs
+from seL4 and mCertiKOS in that its proofs are all done by an SMT solver
+which does not produce any machine-checkable proof objects.
+
 \section{Verification of Device Drivers and Interrupts}
 
 Gu {\em et al} \cite{dscal15} pioneered the compositional
@@ -93,7 +138,7 @@ driver, which investigated the relationship between external events, device
 and processor execution, and proved several non-trivial lemmas that can be
 viewed as a foundation of this work. In their work, the execution of CPU and
 devices are modeled as a combined transition system with an oracle to select
-the next one to make a step. The transition of each step is categorised into
+the next one to make a step. The transition of each step is categorized into
 three cases: (1) processor-device transition, (2) local processor transition,
 and (3) external device transition. The paper shows that: a. the steps of
 local processor and external device transition can be swapped because they do
