@@ -2,11 +2,41 @@
 
 \section{Hoare-Style Program Verification}
 
-\section{Program Verification with Low Level Solvers}
+Hoare logic \cite{hoare69} is a popular formal system that is used to reason about correctness of programs.
+Each program $C$ is annotated with the precondition $P$ and post condition $Q$ to form the Hoare triple $\{P\}~C~\{Q\}$, used to
+describe the way the execution of the program $C$ changes the state of the computation.
+In generic case, the Hoare triple states that for any state $S$, if $P(S)$ holds, and from state $S$, if the program $C$ executes and terminates normally
+with a new state $S'$, then $Q(S')$ holds. In case we prove the total correctness, we also need to prove that if $P(S)$ holds, then
+the program $C$ indeed terminates normally, instead of taking it as premise.
+One important extension to the Hoare logic is the separation logic \cite{reynolds02}, which allow us to effectively reason about
+programs that access and mutate shared data structures. The ``frame rule'' enables us to reason about each programs locally,
+focusing only on the portion of memory being access by the program.
+Verification is performed via applying the syntactical logical rules that are developed and proved to be sound.
+Proof automation can be achieved via carefully designed proof tactics, or producing low level formulas that can be fed into
+efficient low level solves  \cite{boogie05,dafny10}.
+
+On the other hand, our program correctness lemma is stated in a way such that there is a forward simulation from the specification $SP$
+to the implementation $C$, i.e., for the given list of arguments and initial state $S$, if $SP$ does not get stuck, and produces a new 
+states $S'$ and potential return value $V$, then the program $C$ executes and terminates safely and produces the same ending state and return value.
+We insist in proving the total correctness, thus need to prove that $C$ always terminate safely.
+If we consider the list of conditions in $SP$ on the list of arguments and initial state that causes it to not to get stuck, as a precondition,
+and the new states and return value as the post condition, our correctness lemma can be viewed very similar to the Hoare triple.
+In fact, it is a stronger form of Hoare triple in the sense that we always insist on the deep specification, thus we capture all the information
+we intended to know about the final state, and in fact, in most cases, the specification is a function that produces exact new abstract states upon 
+execution. This does not mean that we always capture entire implementation details in the specification, as we hide all necessary details
+when we abstract the concrete in-memory structure into logical abstract states, and the specification is in terms of these abstract states.
+Unlike separation logic, our reasoning on isolation is completely separated from the code verification. For example, instead of reasoning
+on the pointer memory access directly, we first perform data abstraction to turn the in-memory data structure into logical abstract states,
+where the isolation is guaranteed by design, and provide the exclusive accesses to these abstract states via explicit list of primitives.
+Next, further reasoning on isolation properties, e.g., reasoning of invariants, concurrency, interrupt, etc, are performed separated
+at a pure logical level after the code verification is performed against a specification that is reasonably close to the implementation,
+where we can provide strong automation support that still provide great flexibility to the users.
+Since these non-trivial reasoning is done at purely logical level, there is no need to implement various versions of programming logic
+to reason about different kinds of properties with various code annotations.
+On the other hand, we provide automation libraries that assist reasoning on various common properties at the logical level. 
+
 
 \section{OS Kernel Verification}
-
-\section{Support of Fine-Grained Concurrency}
 
 \section{Verification of Device Drivers and Interrupts}
 

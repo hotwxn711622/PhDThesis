@@ -262,7 +262,7 @@ The ultimate atomic specifications for the lock acquire and release primitives
 are shown in Figure \ref{fig:ticket_lock_v}. 
 Here, as a synchronization point, \textsf{acquire\_lock\_spec} first queries the
 environmental context to obtain the list of environmental events to sync, adds
-it to the event list, together with its single \textsf{E\_ACQ\_LOCK} event.
+them to the event list, together with its single \textsf{E\_ACQ\_LOCK} event.
 Meanwhile, \textsf{release\_lock\_spec} is very similar, except it adds its
  \textsf{E\_REL\_LOCK} event instead to the event list. \footnote{As shown in the figure,
  the events are prepended instead of appended in the end of the list, because it is easier
@@ -279,7 +279,7 @@ big and there seem not be a direct connection between the two.
 Following our mantra, we achieve the verification across multiple abstraction layers,
 such that we can focus merely on the functional verification when we deal with the
 C code reusing all the technologies we have developed so far for our automation engine,
-and separately deal with all other aspects at logical level.
+and separately deal with all other proof aspects at logical level.
 
 \paragraph{Layer Interface TicketLockIntro}
 As usual, we introduce a new layer interface TicketLockIntro to perform data
@@ -296,7 +296,7 @@ TicketLockIntro also provides a replay function \textsf{ReplayTicket} which take
 list of the generated events for the block, and reconstruct the value of \textsf{ticket} and
 \textsf{now}. The definition is as one would expect: it increments the \textsf{ticket} and
 \textsf{now} field when it sees the \textsf{E\_INC\_TICKET} and \textsf{E\_INC\_NOW}
-event respectively, and ignores all other events. This relay function is used, for example,
+event respectively, and ignores all other events. This replay function is used, for example,
 in the specification of \textsf{get\_now} to return the current \textsf{now} field.
 
 
@@ -357,8 +357,8 @@ There is still one discrepancy between the \textsf{acquire\_lock\_intermediate\_
 implementation. In order to facilitate the refinement proof between the intermediate specification
 and the corresponding atomic specification, our ticket replay function \textsf{ReplayTicket}
 uses integers to represent the \textsf{ticket} and \textsf{now} field that increments indefinitely.
-On the other hand, our C implementation uses finite precision integers that wraps back to 0 when
-we increment again from its maximum value. That is why we use the $!=$ operator instead
+On the other hand, our C implementation uses finite precision integers that wraps back to zero when
+we increment from its maximum value. That is why we use the $!=$ operator instead
 of $<=$ in Figure \ref{fig:ticket_lock_c}.
 Again, to split out the reasoning of finite precision integer mappings, we use a separate
 replay function \textsf{ReplayTicketWraparound} in the \textit{low level specification} of
@@ -367,8 +367,8 @@ and \textsf{now} fields back to zero when they reach their maximum.
 Then we separately perform the mapping between
 the finite and infinite precision integers during the refinement proof. This way, we no longer
 need to worry about the mapping repeatedly during the intermediate code proofs. During
-the forward simulation refinement proof, this proof can be performed once for all trivially as
-we can just map the numbers from high level specifications into their wrapped versions
+the forward simulation refinement proof, this proof can be performed once and for all by
+simply mapping the numbers from high level specifications into their wrapped versions
 in the low level specifications.
 
 Next, we show how we perform the actual functional verification using our automation engine
@@ -383,9 +383,11 @@ to assist the loop invariant preservation proof, listed in Figure \ref{fig:acq_l
 	\label{fig:acq_lock_lemmas_v}
 \end{figure}
 
+Here, \textsf{WaitTicketWraparound} is a predicate similar to \textsf{WaitTicket} except it uses
+\textsf{ReplayTicketWraparound} instead of \textsf{ReplayTicket}.
 Note the predicate \textsf{WaitTicketWraparound} gets stuck when the bound is not sufficiently large.
 On the other hand, we know the provided bound is large enough as we know the specification does
-not get stuck in the precondition. Thus, we would need to repeated prove that \textsf{WaitTicketWraparound}
+not get stuck in the precondition. Thus, we would need to repeatedly prove that \textsf{WaitTicketWraparound}
 does not get stuck while we verify the loop. Instead, as define another predicate
 \textsf{WaitTicketWraparoundSafe} where it returns the current event list when the counter gets down
 to zero, instead of getting stuck. We use this definition instead for verification of the loop, as this
@@ -396,12 +398,12 @@ It states that if we could wait for our turn with sufficiently large bound, then
 upper bound no bigger than the current bound that both original and safe versions would lead to the same event list.
 The lemma \textsf{WaitTicketWraparoundImpliesSafe} shows that for a valid bound, both the original
 and safe versions return the same list, and the lemma \textsf{WaitTicketWraparoundSafeInv}
-prevents the inversion principle for the predicate \textsf{WaitTicketWraparoundSafe}.
+presents the inversion principle for the predicate \textsf{WaitTicketWraparoundSafe}.
 Finally, the lemmas \textsf{WaitTicketWraparoundSafeNeq} and \textsf{WaitTicketWraparoundEq}
 describe the situation when we have short or large bound, respectively.
 
 Let the integer $K$ indicate the smallest bound that would allow the \textsf{WaitTicketWraparound}
-to reach its own turn (not to get stuck). We know such $K$ exist from the fact that the specification
+to reach its own turn (not to get stuck). We know such $K$ exist from the precondition that the specification
 of \textsf{acquire\_lock\_intermediate\_spec} does not get stuck. Then we can specify
 our loop invariant in the following way. 
 
@@ -462,12 +464,12 @@ layer interfaces, but two new events \textsf{E\_ACQ\_LOCK} and \textsf{e\_REL\_L
 generated by the two new lock primitives (see Figure \ref{fig:ticket_lock_v}).
 
 In order to prove the contextual refinement between TicketLockOp and
-TicketLock layers, we need to find a function $f$ that can convert
+TicketLock layers, we need to find a function $f$ that converts
 one environmental context into the other, and also a refinement relation
 $R$ that related the list of events in two layers.
 We map two list of events by mapping \textsf{E\_PULL} in 
 TicketLockOp to \textsf{E\_ACQ\_LOCK} in TicketLock,
-and \textsf{E\_INC\_NOW} to  \textsf{E\_REL\_LOCK},respectively, ignoring all other
+and \textsf{E\_INC\_NOW} to  \textsf{E\_REL\_LOCK}, respectively, ignoring all other
 events in TicketLockOp. Function $f$ can be derived from this relation by
 first applying the underlay environmental context in underlay event list,
 and convert the list into the list of overlay events following the same conversion
@@ -479,7 +481,7 @@ we can compose proofs of individual primitives to derive the full
 contextual refinement as in the sequential case.
 
 \paragraph{Extending to Other Type of Spinlocks}
-This event-based specification for the spinlock is also general enough
+This event-based specification for the spinlock is general enough
 to capture  other implementations like the \emph{MCS Lock},
 which is known to have better scalability than ticket lock
 over machines with a larger number of CPUs. We have also
@@ -520,7 +522,9 @@ wraps $\deq\comm{\_t}$ with the lock acquire and release functions.
 To verify this shared queue, we first verify the $\deq\comm{\_t}$ function
 via the  \emph{fun-lift} pattern for sequential program, where the specification
 assumes that the lock is already held, thus no interleaved executions are possible
-in the middle of $\deq\comm{\_t}$. Then we utilize 
+in the middle of $\deq\comm{\_t}$. 
+This way, we can reuse the verified sequential queue with minimum change.
+Then we utilize 
 the \emph{log-lift} pattern to introduce another layer for the main $\deq$ function
 where it simply generate one single $\deq$ event. This can be done by merging two
 queue-related lock acquire and release events underlay into a single $\deq$ event
@@ -533,7 +537,7 @@ Given that we can reason about concurrent programs, we have extend the OS kernel
 presented in Chapter \ref{chapter:sequential} into a concurrent kernel that can boot on
 multiple CPUs.  On top of that, we also have extended the kernel's virtualization support
 such that it can boot multiple virtual machines.
-As shown in Figure \ref{fig:multivm_v}, every VM related data structure is not duplicated
+As shown in Figure \ref{fig:multivm_v}, every VM related data structure is now duplicated
 one per each VM, indexed by the VM ID.
 
 \begin{figure}
@@ -559,12 +563,12 @@ In addition, we have made the following adjustment to support multiple VMs.
 VM indexed by the current CPU ID,
 \item \textsf{vm\_enter}, \textsf{vm\_exit}, \textsf{vmptrld}, and \textsf{invept} are adjusted
 to properly support own VM indexed by CPU ID, 
-\item we statically allocate one MSR and IO bitmap per VM, and thus need to set proper address in the
+\item we statically allocate one MSR and IO bitmap per VM, and set proper address in the
 VMCS data structure for that VM during initialization, and
 \item we map each VMCS's EPT root to the right root indexed by CPU ID during initialization.
 \end{itemize}
 
-In addition, in the sequential kernel, we used to statically allocate TSS and GDT for each process.
+In addition, in the sequential kernel, we used to statically allocate TSS and GDT.
 In concurrent kernel, we allocate them on each process's stack, and saves the current CPU ID in the stack.
 Thus, the stack in this multi-processor kernel is no longer just a page that can be used merely as free stack.
 THe new stack definition is shown in Figure \ref{fig:kstack_c}. 
