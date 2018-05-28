@@ -142,8 +142,7 @@ we have successfully verified a practical single-core
 operating system kernel with rich features like virtual
 memory, process management, hardware virtualization, {\it etc}.
 The proof is achieved semi-automatically with our automation
-engine implemented in Coq proof assistant and the entire proof
-effort took less one person year.
+engine implemented in Coq proof assistant.
 
 \ignore{
 In a monolithic kernel, device drivers
@@ -309,7 +308,7 @@ equivalent to the original interleaved executions.
 
 Again, following our mantra, we have developed an effective way of representing the states
 shared among multiple concurrent programs, and expressing the invariants on the current program
-and assumptions for other concurrent programs. While we continue to abstract private in-memory
+and assumptions for other companion concurrent programs. While we continue to abstract private in-memory
 states into logical abstract states, the shared states are represented instead as list of globally
 observable I/O events, where actual states can be inferred given the list of events. Thus, the operations
 on the shared states by the current program are specified as appending corresponding events to the

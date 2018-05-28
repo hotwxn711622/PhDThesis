@@ -140,7 +140,7 @@ Coq and does not have any intended meaning.}
 
 Existential variables can be instantiated explicitly by the \textsf{instantiate}
 tactic. In the case of $?8=7$ above, we can first run
-``$\textsf{instantiate}~(1:=7)$ to instantiate the right-most appearance of
+``$\textsf{instantiate}~(1:=7)$'' to instantiate the right-most appearance of
 existential variable (in our case, the only variable $?8$) to $7$ and turn
 the goal into $7=7$, which can be solved easily by the \textsf{reflexivity} tactic.
 On the other hand, Coq itself also tries to fill the existential variable
@@ -203,7 +203,7 @@ otherwise, it was not implemented following a modular design.
 Among those small size functions, some of them are very short (less than
 ten lines of code), where we should expect our automation tactic to
 finish within a couple of seconds. For the ones with longer size,
-we probably would expect it to take no longer than a minute.
+we probably would expect it to take no longer than a couple of minutes.
 
 Even though we do not enforce any time requirement to our tactics,
 we have made some design decisions to make the tactics reasonably more
@@ -303,7 +303,7 @@ on the fly as soon as they become provable.
 
 When the goals get down to a very simple forms, e.g., simple equalities or inequalities,
 goals that are already known in the assumptions, {\it etc}, we would expect to
-discharge them easy with tactic like \textsf{reflexivity}, \textsf{assumption/eassumption},
+discharge them easily with tactic like \textsf{reflexivity}, \textsf{assumption/eassumption},
 \textsf{omega}, and so on. On the other hand, as we discussed in Section \ref{sec:principle},
 randomly applying these tactics could lead us to non-provable subgoals, due to the
 existential variables. Fortunately, Coq provides two tactics \textsf{is\_evar v}
@@ -330,7 +330,7 @@ Then after invoking the main tactic \textsf{cauto}, the human prover needs to
 instantiate the existential variables that caused the stop (or instantiate
 any many remaining existential variables as she can), and reinvoke \textsf{cauto}
 tactic. However note that the first \textsf{cauto} may result in a huge number
-of unproven subgoals, and once we are done the instantiation, we need to call
+of unproven subgoals, and once we are done with the instantiation, we need to call
 the equivalent number of \textsf{cauto} tactic to prove the rest of subgoals.
 This list may grow exponentially and result in an unnecessarily lengthy proof
 script of \textsf{cauto} call chains.
@@ -410,9 +410,9 @@ as a separate lemma.
 \section{Loops}
 
 It is obvious that loops need special treatment, as otherwise, we would keep
-applying the semantic rules in Fig.~\ref{fig:clight_exec_stmt} in definitely.
-Instead, I have developed various separate logic modules for loops, and
-an example module of proving simple while loops is shown in Fig.~\ref{fig:loop_proof}.
+applying the semantic rules in Fig.~\ref{fig:clight_exec_stmt} indefinitely.
+Instead, I have developed various separate logic modules for loops.
+An example module of proving simple while loops is shown in Fig.~\ref{fig:loop_proof}.
 As shown in Fig.~\ref{fig:loop_proof}, each of such modules is parameterized
 over a precondition $P$ (which is expected to hold at the loop entry), and
 a post condition $Q$ (that needs to be proved to hold at loop exit).
@@ -433,9 +433,9 @@ that the relation $lt$ is actually well founded.
 
 Another important input to the module is the loop invariant $I$, which is
 a relation over the changing state (memory and temporary environment), and
-the termination metric. Then we are required to provide two proofs.
+the termination metric. We are required to provide two proofs.
 First, the state at the loop entry satisfies the loop invariant $I$,
-if it also satisfies the precondition $P$ ($P\_implies\_I$).
+if it satisfies the precondition $P$ ($P\_implies\_I$).
 Next, if the state before a particular iteration satisfies the loop
 invariant, then either the loop condition evaluates to false, causing
 the loop to exist with an exit state satisfying the post condition $Q$,
