@@ -79,7 +79,13 @@ triple of $(s, l, p)$ where $s >= 0$, $l > 0$, and $s + l < Int.max\_unsigned$.
 \end{invariant}
 
 Since the MM table and its size comes from BIOS, the invariant is treated as top level
-assumption of our entire proof. 
+assumption of our entire proof on the correctness of the BIOS. 
+
+Each layer interface has exactly one initialization primitive, e.g., either just gets passed through
+from the previous layer interface or a new primitive that is newly introduced in this layer
+interface, and since this primitive sets \textsf{init}
+to \textsf{true} from \textsf{false}, this primitive needs to initialize all the proper abstract states
+such that the initialized states satisfy all the invariants in this layer interface.
 
 Figure \ref{fig:bootloader_v} presents our Coq specification for the boot loader primitive.
 Here, the notation ``\textsf{adt \{attr: val\}}'' indicates a new abstract state where the attribute
@@ -776,7 +782,7 @@ $0\le b < \textsf{num\_chan}$ when $s=\textsf{SLEEP}$, and $b=\textsf{num\_chan}
 
 We have implemented two additional layer interface PIPCIntro and PIPC on top of the PThread layer for a single-copy
 synchronous inter-process communication (IPC) protocol. 
-Every IPC message contains the sender's virtual address of the sender message buffer, and the number of bytes sent.
+Every IPC message contains the virtual address of the sender message buffer, and the number of bytes sent.
 The layer interface PIPCIntro abstracts the IPC message into abstract buffer and introduces the getter and setter primitives.
 The layer PIPC introduces the main \textsf{sync\_sendto\_chan} and \textsf{sync\_receive\_chan} primitives to send and receive
 messages between processes synchronously. 

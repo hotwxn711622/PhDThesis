@@ -15,7 +15,7 @@ Verification is performed via applying the syntactical logical rules that are de
 Proof automation can be achieved via carefully designed proof tactics, or producing low level formulas that can be fed into
 efficient low level solves  \cite{boogie05,dafny10}.
 
-On the other hand, our program correctness lemma is stated in a way such that there is a forward simulation from the specification $SP$
+On the other hand, our program correctness lemma is stated in a way such that there is a downward simulation from the specification $SP$
 to the implementation $C$, i.e., for the given list of arguments and initial state $S$, if $SP$ does not get stuck, and produces a new 
 states $S'$ and potential return value $V$, then the program $C$ executes and terminates safely and produces the same ending state and return value.
 We insist in proving the total correctness, thus need to prove that $C$ always terminate safely.
@@ -138,7 +138,7 @@ driver, which investigated the relationship between external events, device
 and processor execution, and proved several non-trivial lemmas that can be
 viewed as a foundation of this work. In their work, the execution of CPU and
 devices are modeled as a combined transition system with an oracle to select
-the next one to make a step. The transition of each step is categorized into
+the next one to make a step. The transition of each step is categorised into
 three cases: (1) processor-device transition, (2) local processor transition,
 and (3) external device transition. The paper shows that: a. the steps of
 local processor and external device transition can be swapped because they do
