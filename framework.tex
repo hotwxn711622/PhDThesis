@@ -1,8 +1,12 @@
 
+The main novel idea of our automation engine design is to allow it to solely focus on verification
+of functional correctness properties making all good assumptions about other aspects,
+e.g., isolation, invariants, interrupts, concurrency, {\it etc}, as given, and provide
+a separate systematic framework to handle each of the constructions independent from the functional correctness proof.
+We achieve this separation via the technique of \emph{certified abstraction layers}.
+In this section, we give a detailed overview our abstraction-layer-based
+approach and we illustrate our actual automation engine in Chapter \ref{chapter:automation}.
 
-In this section, we give a detailed overview of our abstraction-layer-based
-approach on verifying system software. The exact techniques are used
-in the verification of the mCertiKOS kernel presented in chapter \ref{chapter:sequential}.
 As in any other system verification, we associate every code module (a piece of code,
 or normally, a function)
 a specification, and prove that the code meets its specification, or more
@@ -222,7 +226,7 @@ with our layer interface) and an x86-based assembly language LAsm
 architecture with layer interface). In the subsequent sections,
 we first define these two languages formally, then present
 a formal notion of {\em certified abstraction layers} that can be used
-to verify the mode modules with deep specifications.
+to verify the code modules with deep specifications.
 
 \ignore{
 Since the {\em invariants} are preserved by all the
@@ -480,8 +484,7 @@ in this extension. First, the state of Clight language should be extended
 to support the abstract states. Second, we also need to support
 the abstract primitives so that we can syntactically invoke these primitives
 in the ClightX source code and the semantics of these primitive calls
-should not only change the old system states in Clight, but especially it
-should be able to update the abstract states as well.
+should be able to update the abstract states.
 
 On the other hand, we seek to minimize the impact on the existing proof
 infrastructure for program and compiler verification. Thus, we do not

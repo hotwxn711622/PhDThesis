@@ -10,9 +10,8 @@ system software. To achieve this, we need to tackle several main challenges.
 First, complex system software consist of highly interdependent subsystems, which makes it
 difficult to reason about each small component locally. Separation logic is one of most commonly
 used tools to reason about the isolation of data structures in the memory
-\cite{appel07:tphols,Tuch:2009}. Yet it still provides much overhead and hinders opportunities
-for automation in proving the main functional correctness of the piece of program by mixing this
-logic with the proofs of isolation.
+\cite{appel07:tphols,Tuch:2009}. Yet it mixes the main functional correctness logic with the proof
+of isolation, thus provides overhead and hinders opportunities for automation.
 
 Next, majority of the traditional verification efforts on proving system software go into proving
 invariant preservation properties~\cite{klein14}. Invariants are known to be very expensive
@@ -22,7 +21,8 @@ moment of the whole system execution and cannot be accidentally broken by any fu
 in the system, e.g., through pointer manipulation. Even worse, in practice, we normally do
 have functions that temporarily break the invariants. For example, an operation to a data structure
 that well preserves the invariants could be implemented with multiple auxiliary functions, where
-each of these functions temporarily violates the invariants. Traditional verification approaches
+some of these functions temporarily violate the invariants while some re-establish
+the invariants later. Traditional verification approaches
 do not have a very effective and systematic way of tackling this challenge.
 
 In this thesis, we present simple, yet very powerful automation engine for effectively
@@ -51,12 +51,12 @@ states, thus the abstract states are completely isolated from the rest of in-mem
 abstract states, and cannot be accessed by other primitives or memory operations.
 The actual functions, which are implemented on top of the new abstraction layer
 using the new read/write primitives, can be verified
-effectively with our automation engine completely at logical level, and no longer needs to deal with
+effectively with our automation engine completely at logical level, and we no longer need to deal with
 low level memory or isolation. Here, a new abstraction layer is developed where the verified
 functions are turned into logical primitives with their specifications, and new functions can be
 further verified on top of this new abstraction layer.
 
-As we abstract each in-memory data structures into logical abstract states, our system invariants
+As we abstract in-memory data structures into logical abstract states, our system invariants
 are also expressed in terms of the abstract states. At every abstraction layer, we separately
 prove that all the primitives in this layer satisfy all the invariants in this layer. Given that these
 primitives are the only way to access the abstract states, by design, we know that any piece of
@@ -70,7 +70,8 @@ For example, when we only have auxiliary list operations that break the list int
 we can postpone introducing this invariants until we get to the layer where we have
 verified the full functions that gracefully operate on the list preserving the invariants.
 The intermediate auxiliary primitives that are no longer needed are removed from the new abstraction
-layer to avoid unnecessary invariants proof.
+layer to make sure the new invariants are preserved, or to avoid unnecessary invariants proof
+even when they do preserve the new invariants added.
 
 
 \ignore{
@@ -142,7 +143,8 @@ we have successfully verified a practical single-core
 operating system kernel with rich features like virtual
 memory, process management, hardware virtualization, {\it etc}.
 The proof is achieved semi-automatically with our automation
-engine implemented in Coq proof assistant.
+engine implemented in Coq proof assistant, and is detailed
+in Chapter \ref{chapter:sequential}.
 
 \ignore{
 In a monolithic kernel, device drivers
