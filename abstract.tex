@@ -1,13 +1,13 @@
 Formal verification is the only known way of building bug-free or hacker-proof
-program. However, due to its prohibitive associated costs, formal verification
+programs. However, due to its prohibitive associated costs, formal verification
 has been rarely considered as an option in building robust large-scale system software.
-Practical system software normally consist of highly correlated interdependent subsystems,
-with complex invariants that need to be globally maintained. To reason about correctness of
-a piece of program, we not only need to show that the program in consideration
+Practical system software normally consists of highly correlated interdependent subsystems,
+with complex invariants that need to be globally maintained. To reason about the correctness of
+a program, we not only need to show that the program in consideration
 satisfies the invariants and the specification, but also prove that the invariants cannot be
 accidentally broken by other parts of the system, e.g., via pointer manipulation.
 Furthermore, we often have some snippet of code that temporarily breaks the invariants,
-and re-establishes them later, which could explode the reasoning complexity of such code.
+and re-establishes them later, which could make reasoning of such code more complex.
 Even worse, many complex system software contains device drivers to work with the devices,
 which brings a major challenge of handling device interrupts;
 and consists of multiple threads running on multiple CPUs concurrently. 
@@ -15,22 +15,22 @@ This forces us to further reason about arbitrary interactions and interleaved ex
 different devices, interrupts, and programs running on different CPUs, which could quickly make the verification
 task intractable.
 
-In this dissertation, we present simple, yet extremely powerful automation engine for effectively
-verifying complex system software. It is simple because it solely focuses on providing strong automation
+In this dissertation, we present a compositional, and powerful automation engine for effectively
+verifying complex system software. It is compositional because it solely focuses on providing strong automation
 support for verifying functional correctness properties of C source programs, while taking the
-isolation and invariant properties as given, and separately provide systematic approach
+isolation and invariant properties as given, and separately provide a systematic approach
 for guaranteeing the isolation among different in-memory data, and proving invariants, completely
-at the logical level. The engine also contains novel way of representing devices and drivers, and
-simulation-based approach for turning the low level interrupt model into an equivalent abstract model which is
+at the logical level. The engine also contains a novel way of representing devices and drivers, and
+simulation-based approach for turning the low-level interrupt model into an equivalent abstract model which is
 suitable for reasoning about interruptible code. Furthermore, the engine provides a new way of representing
-concurrent shared states into sequence of external I/O events, and allows us to verify each main piece of
-concurrent program as if they were sequential and provide separate logical framework to effectively
+concurrently shared states into a sequence of external I/O events and allows us to verify 
+concurrent programs as if they were sequential and provide a separate logical framework to effectively
 reason about interleaved executions. This very modular design allows us to be able to reason about each
-aspect of the system separately, and while each of the reasoning task looks unbelievably simple, we could combine
+aspect of the system separately, and while each of the reasoning tasks looks unbelievably simple, we could combine
 all the proofs to obtain proofs of properties about complex system software.
-An OS kernel is very typical example of complex low level system software with highly interdependent modules.
-To illustrate effectiveness of our approach, using all the tools, we have developed fully verified feature-rich
-operating system kernel with machine checkable proof in the Coq proof assistant.
+An OS kernel is a very typical example of complex low-level system software with highly interdependent modules.
+To illustrate the effectiveness of our approach, using all the tools, we have developed fully verified feature-rich
+operating system kernel with machine-checkable proof in the Coq proof assistant.
 
 
 
