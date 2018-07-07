@@ -13,8 +13,8 @@
 In this section, we present case studies of our verified drivers.
 Fig.~\ref{fig:data-flow} shows the overall structure of our verified serial
 console, while the left side reflects how the implementation of driver modules
-organized as well as the data / control flow. The right side gives an overview
-of how those modules are verified by construction of certified layers. We have
+organized as well as the data/control flow. The right side gives an overview
+of how those modules are verified through the construction of certified layers. We have
 used a single controller in Sec.~\ref{sec:driver} to make the presentation
 concise. However, mCertiKOS utilizes two physical interrupt controller devices:
 the I/O Advanced Programmable Interrupt Controller (I/O APIC) and the Local
@@ -24,18 +24,18 @@ throughout this section.
 
 As shown in Fig.~\ref{fig:data-flow}, at the system call level, users can invoke
 relevant system calls (\text{sys\_getc}, \text{sys\_puts}, {\it etc}) to read
-from or write to the serial port. The red lines in the figure represents the
-flow of receiving data from serial port. The implementation is interrupt driven.
+from or write to the serial port. The red lines in the figure represent the
+flow of receiving data from the serial port. The implementation is interrupt driven.
 Thus, when the serial receiving buffer (Rx) gets new data, the device triggers
 an interrupt that goes through the Local APIC and I/O APIC devices and the
-interrupt handler of serial device stores the data into the console circular
+interrupt handler of the serial device stores the data into the console circular
 buffer (\texttt{cons\_buffer}). Later, when a user process makes the system call
 \text{sys\_getc}, the system call handler simply pops and returns the head of
 \texttt{cons\_buffer}. On the transmitting side, writing data to the serial port
 (blue lines in the figure) is completely synchronous. When the system call
 \texttt{sys\_puts} is invoked, the system call handler calls the transmission
-function \texttt{serial\_putc} of serial driver to write data to the
-transmission buffer (Tx) of serial device. The critical sections are protected
+function \texttt{serial\_putc} of the serial driver to write data to the
+transmission buffer (Tx) of the serial device. The critical sections are protected
 by the functions \texttt{serial\_intr\_disable} and
 \texttt{serial\_intr\_disable} which masks and unmasks the interrupt signal of
 the serial device.
@@ -48,9 +48,9 @@ APIC, and Local APIC.
 \subsection{Serial Port}
 
 Fig.~\ref{fig:serial} illustrates a typical serial port with a bounded internal
-buffer of size 12. It consists of a RS-232 interface and a Universal
+buffer of size 12. It consists of an RS-232 interface and a Universal
 Asynchronous Receiver/Transmitter (UART) controller. RS-232 delivers electrical
-signals between the UART controller and the connected cable. The UART controller
+signals between the UART controller and the connection cable. The UART controller
 is responsible for demodulating received data into digital bits and storing them
 into the internal receiving (Rx) buffer, and also modulating sent data from
 digital bits and inserting them into the transmission (Tx) buffer.
@@ -82,11 +82,11 @@ There are three external events for the serial device. The serial event
 $\textsf{Recv}~ s$ indicates that a string has been received. The
 $\textsf{SendingCompAck}$ event implies the device received the acknowledgment
 that the characters in the transmission buffer have been sent out successfully,
-while the $\textsf{NoSendingCompAck}$ events indicates that the sending of
+while the $\textsf{NoSendingCompAck}$ event indicates that the sending of
 characters in the transmission buffer is not yet complete.
 
 The serial device is configured to trigger an interrupt when it receives data (a
-nonempty string), and not to trigger any interrupt when the transmission buffer
+non-empty string), and not to trigger an interrupt when the transmission buffer
 becomes empty, i.e., when the characters in the transmission buffer are sent out
 successfully. Thus, before any data is written to the serial port, we have to
 poll the transmission status until it becomes empty. We have chosen this setup
@@ -193,10 +193,10 @@ based on the input and output addresses and values. Note that function
 of the buffer when the length of the new buffer exceeds the hardware buffer size
 ($\mathsf{BufSize}$). The \textsf{baud\_low} in Fig.~\ref{fig:env-cpu-trans} is an
 example configuration of the control registers. The value of
-\textsf{Baudrate} is not used to simulate the timing of the signal, but
+\textsf{Baudrate} is not used to simulate the timing of the signal but
 is checked against the real hardware settings in certain transitions, such
 as $\delta^{\textsf{CPU}}$ for \textsf{read} and \textsf{write}, in order to
-verify that the driver is free of mis-configuration bugs.
+verify that the driver is free of misconfiguration bugs.
 
 % The following rules exhibit some interesting transitions.
 
@@ -258,14 +258,14 @@ character into the transmission buffer.
 
 The second rule above shows the case when the initial transmission buffer
 is not empty. Here, the device performs transition based on
-the received event $e$, and repeats the same process until it finally
+the received event $e$ and repeats the same process until it finally
 receives the $\textsf{SendingCompAck}$ event. Then, by definition of
 $\delta^{env}$ in Fig.~\ref{fig:env-cpu-trans}, the transmission
 buffer becomes empty and the next recursive call falls into the first
 case of the specification.
 
-As for \texttt{serial\_getc}, a check of status register will be first performed
-to clear the \textsf{irq} state, and confirm that there are pending receiving
+As for \texttt{serial\_getc}, a check of the status register will be first performed
+to clear the \textsf{IRQ} state and confirm that there are pending receiving
 messages (line 16). If the receiving buffer is not empty, the head of the buffer is
 fetched (line 17) and inserted into the console buffer.
 
@@ -290,7 +290,7 @@ is an extension of the CompCert Clight language \cite{leroy09} with
 abstract states and primitives.}
 For each driver function, we prove
 that the concrete implementation satisfies its specification. Our
-proof is termination-sensitive; we prove total correctness of each
+proof is termination-sensitive; we prove the total correctness of each
 function. In the case of \texttt{serial\_putc}, the maximum iteration
 counter ($12800$) is used solely to enforce termination. We maintain
 an invariant on $\ell^{env}$ that the serial port receives a
@@ -359,7 +359,7 @@ entire automation libraries are implemented in Coq's tactical language Ltac.
 
 An I/O APIC device collects interrupts from externally connected devices and
 distributes them to the corresponding Local APIC. It can be programmed to mask
-one or more of these interrupt lines, if the OS does not wish to receive
+one or more of these interrupt lines if the OS does not wish to receive
 interrupts from some device(s).
 
 Fig.~\ref{fig:ioapic} illustrates the registers and connections of an I/O APIC
@@ -372,13 +372,13 @@ Fig.~\ref{fig:ioapic-states}, where $\iota$ represents the interrupt request
 currently being processed and its corresponding destination LAPIC ID.
 
 As an interrupt controller, the I/O APIC is treated as a special device. It does
-not observe any event from the external environment, and thus has neither a
+not observe any event from the external environment and thus has neither a
 local log nor an environmental transition $\delta^{\textsf{env}}$, but instead,
 it receives interrupt requests from the devices and EOI signals from the Local
 APIC. We have introduced a special transition function $\delta^{intr}$ to
 specify these interrupt-related behaviors.  Accordingly, $\delta^{intr}$ takes
 two kinds of events: $\textsf{IRQ} ~ n$ indicates that an IRQ with number $n$ is
-triggered by a device; and $\textsf{EOI}$ states that the latest interrupt
+triggered by a device; $\textsf{EOI}$ states that the latest interrupt
 request has been handled by the OS.  The interesting parts of the transition
 rules for $\delta^{intr}$ are shown in Fig.~\ref{fig:ioapic-transition}.
 
@@ -436,8 +436,8 @@ as part of its internal state. Then this IC object is further extended into more
 abstract objects by introducing additional driver layers.
 
 At the top level, the I/O APIC device object provides four primitives, two of
-them are used to setup the IRQ mappings in the I/O APIC.  Specifically,
-\texttt{ioapic\_init} initializes the device when the kernel boots, and
+them are used to set up the IRQ mappings in the I/O APIC.  Specifically,
+\texttt{ioapic\_init} initializes the device when the kernel boots and
 \texttt{ioapic\_enable} links a given interrupt line to a Local APIC when a new
 device is plugged in or some device changes its working mode. Another two,
 namely \texttt{ioapic\_mask} and \texttt{ioapic\_unmask}, are used to enable and

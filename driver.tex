@@ -54,11 +54,11 @@ Chapter \ref{chapter:framework}
 and utilize the CompCert memory permissions~\cite{leroy08} to hide the relevant
 memory at overlay, which prevents the context code from accessing the object's
 private data. These logical permissions do not correspond to any physical
-protection mechanism, but are used to ensure that the abstract machine at
+protection mechanism but are used to ensure that the abstract machine at
 overlay gets stuck if any code tries to directly access this portion of data.
 The safety proof of our entire operating system (the kernel never gets stuck)
 guarantees that such a situation never happens.  The set of driver functions at
-underlay, which manipulate the memory that will be abstracted away at overlay,
+underlay, which manipulates the memory that will be abstracted away at overlay,
 are themselves abstracted into the set of device primitives at the overlay (see
 Fig.~\ref{fig:spec:object}).
 
@@ -119,7 +119,7 @@ is already introduced, we will no longer need \texttt{ahci\_readl} and
 At a certain abstraction layer, some drivers, or more generally, system
 services, may interact with multiple device objects, by, e.g., transferring data
 between two devices, or broadcasting messages to multiple devices.  At this
-stage, such devices are no longer totally isolated, but are synchronized through
+stage, such devices are no longer totally isolated but are synchronized through
 hardware or software mechanisms.  This does not fit directly into our model
 providing systematic isolation among different device objects and the rest of
 the kernel.
@@ -129,11 +129,11 @@ object, which combines the device objects from the underlay via the newly
 introduced functions. The abstract machine at overlay thereby provides
 systematic isolation between the new abstract device object and the rest of the
 kernel. The internal states and local logs of the combined device object are the
-disjoint union of the relevant objects at underlay, while the functions that
+disjoint unions of the relevant objects at underlay, while the functions that
 manipulate multiple device objects at underlay become primitives of the new
 device object, operating on a wider range of internal states, at overlay. As in
 all device objects, existing primitives can be either passed through to this new
-device, or hidden.
+device or hidden.
 
 
 \subsection{Interrupts}
@@ -141,11 +141,11 @@ device, or hidden.
 We now show how to adapt the interrupts into our setting.  We first present our
 interrupt model at the hardware level, where the interrupt transitions are
 separately defined for the CPU, the interrupt controllers (IC), and the devices.
-At this low level we lack the full behaviors of interrupt handlers, so all the
+At this low-level we lack the full behaviors of interrupt handlers, so all the
 primitives verified at this machine level have the precondition that interrupts
 are disabled or the corresponding interrupt lines are masked. A special flag
 $\mathsf{critical}$ is defined in the abstract state of each device to make sure
-that every such low level primitives have precondition of $\mathsf{critical}$ 
+that every such low-level primitive has the precondition of $\mathsf{critical}$ 
 being $\mathsf{true}$ to enter the critical section for accessing the data
 shared between the primitives and the interrupt handler
 of the device.  On top of this hardware abstraction layer, we
@@ -186,8 +186,8 @@ corresponding entry in the interrupt descriptor table (IDT). If interrupts are
 turned off, the interrupt signal is ignored. Thus, an interrupt involves at most
 three consecutive transitions: the device, the IC, and the CPU.  These three
 transitions seem inter-related, and isolation among the three entities is
-non-obvious.  In our approach, we first develop a low level hardware interrupt
-model that separately defines the set of interrupt related operations.  Then
+non-obvious.  In our approach, we first develop a low-level hardware interrupt
+model that separately defines the set of interrupt-related operations.  Then
 these three disconnected components are united at some higher level abstract
 machine model after we have verified all the interrupt handlers.
 
@@ -474,7 +474,7 @@ $\textsf{critical}$ in the device itself to indicate whether the particular
 interrupt is masked. When $\textsf{critical}$ is $\textsf{true}$,
 it indicates that the interrupt line for the device is masked, thus
 the execution can enter the critical sections to read and write the device
-internal states, and {\it vice versa}. Recall that all the low level
+internal states, and {\it vice versa}. Recall that all the low-level
 primitives (ones introduced before the interrupt handler) of the device
 have the precondition of $\textsf{critical}$ to be 
 $\textsf{true}$ to enter the critical section.
@@ -482,8 +482,8 @@ $\textsf{true}$ to enter the critical section.
 The {\it intr\_disable} primitive first synchronizes the device state
 with the previously unhandled interrupts then sets interrupt as
 disabled.  It performs the synchronization by scanning the log from
-the last place {\it intr\_enable} was called, until we hit the first
-event that did not trigger any interrupt.  This ensures that
+the last place {\it intr\_enable} was called until we hit the first
+event that did not trigger an interrupt.  This ensures that
 subsequent observations on the device (in the abstract model) will be
 consistent with those performed under the hardware interrupt model.
 Note that {\it intr\_disable} is defined recursively: it performs the
@@ -494,7 +494,7 @@ discarded since the device
 transition stops at the point where the last unhandled interrupt is
 handled.
 
-The {\it intr\_enable} primitive discharges any raised interrupts,
+The {\it intr\_enable} primitive discharges any raised interrupts
 then sets interrupt as enabled. This models the physical machine
 behavior, wherein interrupts (which can occur while interrupts are
 disabled) get delayed until interrupts are re-enabled. This causes the
@@ -519,7 +519,7 @@ high-level device primitive $p_i$, followed by {\it intr\_enable}).
   device, said device may have performed interrupt-triggering
   transitions related to the current local log, and the interrupts
   triggered during this period were immediately handled by the CPU.
-  Then before calling any low level device primitives, we first need
+  Then before calling any low-level device primitives, we first need
   to turn off the interrupt (through {\it intr\_disable}), since those
   primitives were introduced at abstraction layers lower than the
   underlay in Fig.~\ref{fig:interrupt}, which assume the interrupt

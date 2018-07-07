@@ -11,7 +11,7 @@ This dissertation aims to provide a very effective and accessible way of proving
 system software. To achieve this, we need to tackle several main challenges.
 
 First, complex system software consists of highly interdependent subsystems, which makes it
-difficult to reason about each small component locally. Separation logic is one of most commonly
+difficult to reason about each small component locally. Separation logic is one of the most commonly
 used tools to reason about the isolation of data structures in the memory
 \cite{appel07:tphols,Tuch:2009}. Yet it mixes the main functional correctness logic with the proof
 of isolation, thus provides overhead and hinders opportunities for automation.
@@ -219,7 +219,7 @@ drivers also faces the following challenges.
 {\em Devices and CPU run in parallel.} Thus, the executions of CPU
 instructions and device transitions can interleave arbitrarily. Code
 verification on this highly nondeterministic machine can be
-challenging, since it needs to consider device state transitions, even
+challenging since it needs to consider device state transitions, even
 when the CPU is executing a set of instructions unrelated to external
 devices. Recent
 work~\cite{Alkassar:OSVE09,Alkassar:VSTTE08-225,Alkassar:VSTTE2010-71}
@@ -262,7 +262,7 @@ the assembly-level proofs.
 %
 {\em The correctness results of different components should be
 integrated formally.} For example, the correctness proofs of device
-drivers and the rest of system
+drivers and the rest of the system
 % , both written in a combination of C and assembly,
 need to be formally linked as an integrated system,
 before one can deliver formal guarantees on the system as a whole. Not
@@ -280,7 +280,7 @@ if some device driver code triggers a page fault at the user level,
 the behavior of the corresponding driver is linked to the behaviors of
 the page-fault handlers and address translation mechanism of the kernel.}
 
-Following our mantra, we isolate all above challenges from our main
+Following our mantra, we isolate all the above challenges from our main
 functional correctness proof such that we can reuse all the techniques
 we have developed above for effective verification of device drivers.
 To reason about isolation among concurrent devices and the other parts
@@ -291,9 +291,9 @@ interrupt model, built upon a realistic
 hardware interrupt model through contextual refinement.
 As a result, we have built an effective system that systematically enforces the
 isolation among different system modules, which is important
-for scalability of any verification effort and critical for reasoning
+for the scalability of any verification effort and critical for reasoning
 about interruptible code. 
-We have successfully used these techniques to build world's first fully verified
+We have successfully used these techniques to build the world's first fully verified
 interruptible OS kernel with device drivers.
 The details are presented in Chapter \ref{chapter:driver}.
 
@@ -307,11 +307,11 @@ devices, efficient reasoning of arbitrary concurrent executions among various
 interdependent components in a complex low-level system is considered
 intractable by some researchers~\cite{vontessin13,peters15}. 
 In concurrent programs, the accesses to the shared states are protected, either by
-locks or via lock-free algorithms. On the other hand, in developers' mind, these accesses
+locks or via lock-free algorithms. On the other hand, in the developers' mind, these accesses
 are considered ``atomic'', and this atomicity needs to be reflected in any good specifications.
 When we reason about these concurrent programs, the challenges come from the fact
 that we need to consider all possible interleaved executions between the current program
-and any unknown potential environment programs, and prove that even with all these interleaved
+and any unknown potential environment programs and prove that even with all these interleaved
 executions, the concurrent accesses can be safely shuffled such that we can view as if
 the current program accesses the shared states atomically, and this behavior is observably
 equivalent to the original interleaved executions.
@@ -423,7 +423,7 @@ implementation.  The entire specification and verification
 effort took less than 2 person years.
 }
 
-\item We have extended the engine with novel way of representing
+\item We have extended the engine with a novel way of representing
 devices and drivers, to effectively reason about system software
 with device drivers.
 Instead of mixing the device drivers
@@ -439,7 +439,7 @@ Instead of mixing the device drivers
 \item We present a novel abstraction-layer-based approach for
   expressing interrupts, which enables us to build certified
   {\em interruptible} system software with device drivers. Our formalization of
-  interrupts includes a realistic hardware interrupt model, and an
+  interrupts includes a realistic hardware interrupt model and an
   abstract model of interrupts which is suitable for reasoning about
   interruptible code. We prove that the two interrupt models are
   contextually equivalent.
@@ -453,7 +453,7 @@ Instead of mixing the device drivers
   correctness of the assembly code that can run on the actual
   hardware.
   
-\item We have further extended our engine with effective way of representing
+\item We have further extended our engine with an effective way of representing
 shared states accessed by concurrent programs and making assumptions
 on other concurrent programs. This allows us to reuse all of the
 existing verification techniques to verify concurrent programs, assuming as if

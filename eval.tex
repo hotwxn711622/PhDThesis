@@ -59,16 +59,16 @@ mechanism. When this program gets executed, it compiles the extracted
 C source code into the assembly, and merges it with the existing
 assembly kernel source code, to produce a piece of assembly code
 corresponding to our verified kernel.  Thus, our deliverable comes
-with a piece of assembly code for the entire verified kernel, a high
-level deep specification of various kernel behaviors, and a machine
-checkable proof object stating the assembly code running on the actual
-hardware satisfies the high level specification.
+with a piece of assembly code for the entire verified kernel, a high-level
+deep specification of various kernel behaviors, and a machine-checkable
+proof object stating the assembly code running on the actual
+hardware satisfies the high-level specification.
 
 The verified assembly code is then linked with the rest of kernel code
-(the boot loader and remaining unverified drivers) to produce the
+(the bootloader and remaining unverified drivers) to produce the
 actual binary image of the OS. The resulting kernel is practical: it
 runs on stock x86 hardware and the hypervisor version with the Intel vt-x
-support can successfully boot a unmodified version of Linux as guest.
+support can successfully boot an unmodified version of Linux as a guest.
 
 \paragraph{Verification Effort} 
 Using our general device interface, we have modeled a serial device

@@ -100,7 +100,7 @@ model unrealistic. Instead, we add rules for how devices observe events.
 To address this verification challenge, each device keeps a set of
 local logs $\vec{\ell} = \{\ell_1, ... \ell_k\}$, each of which is a strict prefix
 of $\ell^{env}$.  
-\footnote{We have chosen the prefix form over the subset to allow us
+\footnote{We have chosen the prefix form over the subset to allow us to
 determine more easily where the current execution is at on the global
 event list.}
 The serial device from the example above could
@@ -121,7 +121,7 @@ Every raw device provides two I/O primitives: $\texttt{read} ~ n$ and
 $\texttt{write} ~ n ~ v$. The $\texttt{read}$ primitive first updates
 the device state based on the environmental device transition
 $\delta^{\textsf{env}}$ with the next relevant external event in
-$\ell^{env}$, then returns a value from the new state, and finally
+$\ell^{env}$, then returns a value from the new state and finally
 does the transition $\delta^{\textsf{CPU}}$ triggered by this read
 action. The $\texttt{write}$ primitive first triggers the transition
 $\delta^{\textsf{env}}$ to update the device state based on the next
@@ -193,16 +193,16 @@ nondeterminism that complicates reasoning about asynchronous systems.
 Nonetheless, it accurately models the observable behaviors of real hardware.
 
 Ideally, the global event list should contain a sequence of small atomic
-events which gets associated with time when they get triggered. Then the framework
-should have some notion of real-time clock that allows us to determine what exact
+events which gets associated with the time when they get triggered. Then the framework
+should have some notion of the real-time clock that allows us to determine what exact
 set of events should be consumed by the next transition based on the current time.
-This is out of scope of the current paper. Instead, we allow our transition
-to consume a single ``combined'' event (as a list of event). For example, the
+This is out of the scope of the current paper. Instead, we allow our transition
+to consume a single ``combined'' event (as a list of the event). For example, the
 ``Recv'' event in the Definition \ref{def:eevent} takes a list of characters.
 In addition, a device may also consume an ``empty'' event which indicates there
 was no event triggered in the real world since the last time we checked $\ell^{env}$.
 We parameterize our proof
-in a way that it hold for all possible combinations of such combined event
+in a way that it holds for all possible combinations of such combined event
 list.
 
 \ignore{

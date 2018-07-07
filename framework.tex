@@ -4,7 +4,7 @@ of functional correctness properties making all good assumptions about other asp
 e.g., isolation, invariants, interrupts, concurrency, {\it etc}, as given, and provide
 a separate systematic framework to handle each of the constructions independent from the functional correctness proof.
 We achieve this separation via the technique of \emph{certified abstraction layers}.
-In this section, we give a detailed overview our abstraction-layer-based
+In this section, we give a detailed overview of our abstraction-layer-based
 approach and we illustrate our actual automation engine in Chapter \ref{chapter:automation}.
 
 As in any other system verification, we associate every code module (a piece of code,
@@ -14,14 +14,14 @@ formally, there is a {\em forward simulation}~\cite{Lynch95} from the module
 implementation to its specification. A specification of a module is a logical
 abstract representation of the module's behavior with the concrete
 implementation details hidden. We expect the verification to be compositional,
-i.e, when we reason about other code modules that utilizes existing verified
+i.e, when we reason about other code modules that utilize existing verified
 module $M$ (e.g., it calls a function in $M$), we expect the verification
 of the new modules only looks at the specifications of $M$, given the fact
 that $M$ is already proven to meet its specification, so that the verification
 never needs to look into the actual implementation of $M$. At the moment $M$ is
 being verified, you may not know how $M$ will be used later or what properties of
 $M$ may be useful for any global properties you may get interested in.
-Thus, we insist the specification of $M$ always capture everything
+Thus, we insist on the specification of $M$ always capture everything
 we may want to know about it. We call such specification a {\em deep specification}.
 More formally, for any deep specification $s$, any two implementations that satisfy $s$
 should have contextually equivalent observable behaviors. 
@@ -30,7 +30,7 @@ When we write a specification for a module, we normally hide the
 concrete private data representation in the memory, to ensure the client
 of the module can only access the data through defined public interfaces
 and thus cannot possibly break any invariants imposed on the private
-state in the module implementation. However, in the case of deep
+state in the module implementation. However, in the case of the deep
 specification, in order to capture any potential behaviors in the
 specification itself, we also need to introduce an abstract state
 in substitute the concrete private data to use it to specify
@@ -41,7 +41,7 @@ linked list stored in memory, we may logically interpret the complex in-memory
 data structure as a simple logical list and specify its {\em push} and {\em pop}
 operations as a simple list {\em append} and {\em remove} operations. To support
 this, the framework needs to provide a systematic way to hide the private memory
-state from its client, and replace them with {\em abstract states} to specify
+state from its client and replace them with {\em abstract states} to specify
 the full functionality of each operation in the interface in terms of the {\em
 abstract states}. It also needs to make sure that this transformation is
 sound, i.e., any client code using the {\em push} and {\em pop} operations
@@ -141,7 +141,7 @@ data structure.
 \end{figure}
 
 Next, we show how we can prove the abstract deep specification
-is equivalent to the actual C implementation in arbitrary client context.
+is equivalent to the actual C implementation in the arbitrary client context.
 We first show how we represent the abstract states and primitives
 in our framework.
 Then we show the source language our code module is implemented in,
@@ -152,18 +152,18 @@ and how we link everything to reach the final
 
 In this chapter and the following chapters, I try my best to present the exact
 implementations of example definitions, specifications, and proofs
-directly in Coq, instead of in an invented logical notations
+directly in Coq, instead of in an invented logical notation
 (like derivation rules in Fig.~\ref{fig:spec:abs-cons-buf}).
 The purpose is to help the readers to better understand how the certified
 abstraction layers are implemented in Coq in our framework, instead of
-merely getting the high level ideas. The hope is to make it easier for others to
+merely getting the high-level ideas. The hope is to make it easier for others to
 reproduce our work for their own purpose.
 
 
 \section{Layer Interface}
 \label{sec:layer_interface}
 To support the deep specification, the framework needs a formal notion
-that can be used to represent an arbitrary list of abstract states,
+that can be used to represent an arbitrary list of abstract states
 and a set of abstract primitives that operate on the abstract states. 
 Furthermore, the framework should be able to enforce a set of system
 invariants on the abstract states which gets preserved across
@@ -172,7 +172,7 @@ A {\em layer interface} serves such a purpose.
 
 A layer interface $L$ consists of the {\em abstract states}, {\em
   primitives}, a set of {\em invariants} on the abstract states, and
-{\em proofs} that all the primitives in the layer interface preserves
+{\em proofs} that all the primitives in the layer interface preserve
 the layer invariants.  An {\em abstract state} could be a logical
 state that does not correspond to any physical state in the machine,
 but in most cases, it is a logical state that is abstracted from a
@@ -192,7 +192,7 @@ for the abstract console buffer shown in Fig.~\ref{fig:source:cons-buf}
 and \ref{fig:spec:abs-cons-buf}. Fig.~\ref{fig:cons_buf_spec} shows
 our actual Coq implementation. First, the type of abstract states
 is always defined as a Coq \textsf{Record} with each record field
-representing concrete abstract state.
+representing a concrete abstract state.
 As explained before, the abstract console buffer (named \textsf{cb})
 is represented as a Coq list of integers (line 1-4).
 Line 6 to 20 shows the specifications of three abstract primitives
@@ -211,9 +211,9 @@ in this layer interface.
 \end{align*}
 \end{invariant}
 
-The invariant says that the length of abstract buffer should always
+The invariant says that the length of the abstract buffer should always
 be between zero and the given maximum size.
-It is not hard to prove that all of the three primitives preserves
+It is not hard to prove that all of the three primitives preserve
 this invariant.
 
 Given the layer interface, we need a way to incorporate the layer interface
@@ -258,7 +258,7 @@ supporting the layer interfaces. We first present the language Clight in detail.
 Language Clight is a subset of C and is
 formalized in Coq as part of the CompCert project~\cite{compcert}.  Its formal
 semantics relies on a memory model~\cite{leroy08} that is not only
-realistic enough to specify C pointer operations, but also designed to
+realistic enough to specify C pointer operations but also designed to
 simplify reasoning about non-aliasing of different variables.
 From the programmer's point of view, 
 Clight avoids most pitfalls and peculiarities of C such
@@ -270,7 +270,7 @@ Such simplicity and practicality turn Clight into a solid choice for
 certified programming.
 Furthermore, the CompCert verified compiler
 provides strong guarantees on code
-obtained by compilation of Clight programs.
+obtained by the compilation of Clight programs.
 
 \subsection{Syntax of Clight}
 
@@ -287,17 +287,17 @@ statement \textsf{Scall} takes an optional variable identifier as the first  arg
 which represents the variable we would like to write the return value to.
 It is optional because the function may not have any return value, or the return
 value may get discarded instead of getting written to a variable, i.e.,
-it maybe simply of the form $f(a_1, \cdots, a_n)$ in the standard C format.
+it may be simply of the form $f(a_1, \cdots, a_n)$ in the standard C format.
 
 Furthermore, Clight only defines an infinite loop
 (line 10 in Fig.~\ref{fig:clight_stmt}), and the common C loop constructors
-like \textsf{while}, \textsf{do while}, and \textsf{for} loops are defined
+like the \textsf{while}, \textsf{do while}, and \textsf{for} loops are defined
 separately in terms of the infinite loop \textsf{Sloop} (line 25-32
 in Fig.~\ref{fig:clight_stmt}). 
 In our verified code, we never use
 the \textsf{goto} statement.
-The language also supports special set of functions built into the language.
-They are not used in our framework, and thus are omitted from Fig.~\ref{fig:clight_stmt}.
+The language also supports a special set of functions built into the language.
+They are not used in our framework and thus are omitted from Fig.~\ref{fig:clight_stmt}.
 
 \subsection{Semantics of Clight}
 
@@ -305,10 +305,10 @@ Next, we present the formal semantics of Clight. CompCert defines
 both a small-step and a big-step semantics for Clight, which are proven
 to be equivalent. In this subsection,
 we only present the big-step semantics, as it is simple and our automated
-verification tactics is designed based on it.
+verification tactics are designed based on it.
 
 \paragraph{Clight States}
-Clight states consist of following components.
+Clight states consist of the following components.
 \begin{itemize}[leftmargin=*]
 
 \item Memory state \textsf{m} of type \textsf{mem} is the main memory
@@ -322,7 +322,7 @@ Full details can be found in ~\cite{leroy08}.
 
 \item Global environment \textsf{ge} of type \textsf{genv} represents the mapping
 from global variable/function identifiers to the memory blocks that the variables/functions
-are stored. Since CompCert memory stores each global variable and function into
+are stored. Since the CompCert memory stores each global variable and function into
 its own memory block, storing the offset is not necessary (it is always zero).
 This mapping is fixed once the system code is fixed and can be constructed
 before the system executes the main function. Thus, during the execution, 
@@ -342,7 +342,7 @@ a mapping from local temporary variables to their actual values. Temporary
 variables are special variables in Clight designed for optimization and
 they are not stored in memory (similar to the register variables in GCC).
 When we generate the Clight code, we can scan the code and find
-all the variables that are never taken address of, and represent
+all the variables that are never taken the address of, and represent
 them using the temporary variables
 instead of the above local variables. Given that they are never taken the
 address of, it is not necessary to store them in the memory, and we just need
@@ -355,6 +355,30 @@ if possible. Note that since the mapping saves the actual values of the temporar
 \end{itemize}
 
 
+\begin{figure}
+\lstinputlisting [language = Coq] {src/clight_eval_expr.v}
+\caption{Evaluation rules for Clight expressions}
+\label{fig:clight_eval_expr}
+\end{figure}
+
+\begin{figure}
+\lstinputlisting [language = Coq] {src/clight_exec_stmt.v}
+\caption{Big-step semantics for Clight: part 1}
+\label{fig:clight_exec_stmt}
+\end{figure}
+
+\begin{figure}
+\lstinputlisting [language = Coq] {src/clight_exec_stmt2.v}
+\caption{Big-step semantics for Clight: part 2}
+\label{fig:clight_exec_stmt2}
+\end{figure}
+
+\begin{figure}
+\lstinputlisting [language = Coq] {src/clight_outcomes.v}
+\caption{Outcomes of statement execution}
+\label{fig:clight_outcomes}
+\end{figure}
+
 \paragraph{Expression Evaluation}
 Fig.~\ref{fig:clight_eval_expr} shows the rules for evaluating Clight
 expressions. The definition is parameterized over the memory $m$,
@@ -363,7 +387,7 @@ environment $le$. Note that Clight expressions do not produce any
 side effects. That means evaluating Clight expressions does not
 change any of the above system states.
 As shown in Fig.~\ref{fig:clight_eval_expr}, the rules are defined inductively
-with each constructor corresponds to some expression shown in Fig.~\ref{fig:clight_expr}.
+with each constructor corresponds to some expression as shown in Fig.~\ref{fig:clight_expr}.
 The inductive definitions for evaluating right and left values are defined
 mutually recursively.
 
@@ -371,7 +395,7 @@ mutually recursively.
 Fig.~\ref{fig:clight_exec_stmt} and Fig.~\ref{fig:clight_exec_stmt2}
 shows the big-step semantics on executing the Clight statements.
 The inductively defined predicate \textsf{exec\_stmt} takes
-the Clight states and a Clight statement, and produces
+the Clight states and a Clight statement and produces
 an event trace, a new temporary environment and memory, and
 an execution outcome. Here, the event trace \textsf{t} of type
 \textsf{trace} is used to represent the list
@@ -388,9 +412,9 @@ Fig.~\ref{fig:clight_exec_stmt} shows the semantic constructors for a subset
 of Clight statements. The majority of the rules in the figure should be
 self-explanatory. Note that there are two rules for the sequential compositions
 (line 15-22), where the first rule (line 15-18) represents the case when
-both composed statements executes sequentially (the first statement terminates
+both composed statements execute sequentially (the first statement terminates
 with \textsf{Out\_normal}), while the second rule (line 19-22) explains
-the case when the execution of first rule stops abnormally and the whole sequence
+the case when the execution of the first rule stops abnormally and the whole sequence
 terminates without executing the second statement.
 
 Fig.~\ref{fig:clight_exec_stmt2} presents the semantic rules for more
@@ -443,30 +467,6 @@ the \textsf{external\_call} predicate (line 35). It also requires
 the proof that the semantics satisfies a list of predefined properties
 to respect the compiler correctness.
 
-\begin{figure}
-\lstinputlisting [language = Coq] {src/clight_eval_expr.v}
-\caption{Evaluation rules for Clight expressions}
-\label{fig:clight_eval_expr}
-\end{figure}
-
-\begin{figure}
-\lstinputlisting [language = Coq] {src/clight_exec_stmt.v}
-\caption{Big-step semantics for Clight: part 1}
-\label{fig:clight_exec_stmt}
-\end{figure}
-
-\begin{figure}
-\lstinputlisting [language = Coq] {src/clight_exec_stmt2.v}
-\caption{Big-step semantics for Clight: part 2}
-\label{fig:clight_exec_stmt2}
-\end{figure}
-
-\begin{figure}
-\lstinputlisting [language = Coq] {src/clight_outcomes.v}
-\caption{Outcomes of statement execution}
-\label{fig:clight_outcomes}
-\end{figure}
-
 
 \subsection{Extending Clight to ClightX}
 
@@ -488,15 +488,15 @@ should be able to update the abstract states.
 
 On the other hand, we seek to minimize the impact on the existing proof
 infrastructure for program and compiler verification. Thus, we do not
-modify the semantics of basic operations of Clight, but access the
+modify the semantics of the basic operations of Clight but access the
 abstract states exclusively through the Clight's external function
 mechanism provided in Clight. Recall that
 Clight axiomatizes the behaviors of external functions without
 specifying them, and only assumes they do not behave in a manner that
 violates compiler correctness. We use the external function mechanism
-to extend Clight with our primitive operations, and supply their
+to extend Clight with our primitive operations and supply their
 specifications to make the semantics of external functions precise. 
-The remaining challenge is that, as shown in the line 37 of
+The remaining challenge is that, as shown in line 37 of
 Fig.~\ref{fig:clight_exec_stmt2}, the type of external function semantics
 are already fixed by Clight and it does not contain the new abstract states
 as mutable states in the type. Fortunately, the memory model used in
@@ -507,7 +507,7 @@ new pair $mem * RData$, and instrument the memory access operation
 to access the first part of this new pair. This allows us not to change
 any of the old Clight semantics for the old operations of Clight,
 while still be able to give semantics to the external functions (primitives)
-that changes the abstract state part (the second element in the pair)
+that change the abstract state part (the second element in the pair)
 of the new memory type.
 
 As a result, the language ClightX is parametric over the layer interface,
@@ -517,12 +517,12 @@ list of available external functions) specified using the memory pair
 (the memory and the abstract states).
 
 The specification of external functions in ClightX (shown in line 37 of
-Fig.~\ref{fig:clight_exec_stmt2}) is defined as an inductive predicate,
+Fig.~\ref{fig:clight_exec_stmt2}) is defined as an inductive predicate
 and operates on both the memory and abstract states (thanks to the parameterization
 of the memory as a pair). On the other hand, the semantics of ClightX is
-deterministic given a layer interface. Furthermore, in majority of the
+deterministic given a layer interface. Furthermore, in the majority of the
 cases, the primitive in the layer interface does not change the main memory.
-This is because, we always try to first abstract the memory into logical
+This is because we always try to first abstract the memory into logical
 abstract states and specify the primitives in terms of the abstract
 states. Thus, in our framework, the specifications of primitives
 are mostly written as a Coq function, as they were shown in Fig.~\ref{fig:cons_buf_spec}.
@@ -538,14 +538,22 @@ Given the definition of the language ClightX above,
 we can implement the code modules, e.g., the console buffer
 implementation shown in Fig.~\ref{fig:source:cons-buf}, in ClightX
 and formally reason about their properties using the formal semantics
-of ClightX. On the other hand, the ClightX syntax is defined
+of ClightX. Figure \ref{fig:clight_cb_read} shows the ClightX version
+of the \textsf{cb\_read} implementation.
+As shown in the figure, the ClightX syntax is defined
 in the abstract syntax form, which is very inconvenient
-to write comparing to the standard C format. Instead,
+to write compared to the standard C format. Instead,
 our ClightX code is automatically generated from standard C code
 through a tool called $\textsf{clightgen}$ provided by CompCert~\cite{compcert}.
-We directly verify the generated ClightX code. Thus, correctness
+We directly verify the generated ClightX code. Thus, the correctness
 of the $\textsf{clightgen}$ does not affect the correctness of
 the verified code.
+
+\begin{figure}
+\lstinputlisting [language = Coq] {src/cons_buf_clight.v}
+\caption{Implementation of \textsf{cb\_read} in ClightX}
+\label{fig:clight_cb_read}
+\end{figure}
 
 For simplicity, in the examples used throughout the thesis, we show
 the source code directly in the standard C, even though in Coq, they
@@ -553,55 +561,12 @@ are implemented in ClightX.
 
 
 \section{Language LAsm}
-Even though majority of the system software is implement in C,
+Even though the majority of the system software is implemented in C,
 we would like our formal claim to be made at the actual compiled assembly
 code running on the machine. Furthermore, many of the system software
 has some snippet of code directly implemented in assembly.
 Thus, we need a formal notion of an assembly language with
 the support of parametric layer interface.
-
-\subsection{Syntax and Semantics of LAsm}
-
-The language LAsm is a super set of the CompCert x86 assembly language with more
-machine-dependent registers and instructions needed for implementing
-low level system software. 
-Fig.~\ref{fig:lasm_regs} shows the register definitions in LAsm.
-They are mostly consistent with the standard x86 assembly language,
-except the special pseudo register $RA$ representing the return
-address (line 26). In x86, the return address is normally stored
-on the stack when a function is called, but in LAsm (also in
-CompCert assembly) it is saved in this special pseudo register $RA$.
-It is called a pseudo register because it does not really exist
-in a physical machine. 
-
-Fig.~\ref{fig:lasm_instructions} presents a small subset of assembly
-instructions in LAsm, with their small-step formal semantics
-detailed in Fig.~\ref{fig:lasm_semantics}.
-The statements and their semantics are
-mostly similar to the standard x86 assembly language, except the
-special treatment of stack with the two {\it Pallocframe} and {\it Pfreeframe}
-pseudo instructions. In actual x86, the stack is a consecutive sequence
-of memory, but CompCert memory model cannot reflect that stack blocks
-are adjacent and they are allocated and freed following some stack disciplines.
-Instead, CompCert memory model introduces the two pseudo instructions
-to allocate and deallocate stack blocks which get pretty-printed later
-into appropriate stack increment and decrement x86 instructions. 
-As shown in Fig.~\ref{fig:lasm_semantics}, {\it Pallocframe} first allocates
-a new memory block of specified size and saves the old stack pointer and return
-address into the block at specified offsets, while {\it Pfreeframe} restores
-the old stack pointer and return address saved in the block and frees the memory
-block.
-
-To support parametric layer interfaces, the semantics of LAsm is also instrumented
-in the similar way ClightX is extended from Clight.
-As shown in Fig.~\ref{fig:lasm_step}, we have introduced a new kind of
-external function \texttt{exec\_step\_prim\_call} for assembly-style primitives
-in addition to the external function \texttt{exec\_step\_external} for C-style primitives.
-This is necessary because a module directly implemented LAsm may not follow the C
-calling convention. Note that the ``style'' here denotes the calling convention,
-and not the language the module is implemented in. For example, C-style
-primitives can certainly be implemented in LAsm as long as it follows the C calling
-convention.
 
 
 \begin{figure}
@@ -628,6 +593,49 @@ convention.
 \label{fig:lasm_step}
 \end{figure}
 
+\subsection{Syntax and Semantics of LAsm}
+
+The language LAsm is a superset of the CompCert x86 assembly language with more
+machine-dependent registers and instructions needed for implementing
+low-level system software. 
+Fig.~\ref{fig:lasm_regs} shows the register definitions in LAsm.
+They are mostly consistent with the standard x86 assembly language,
+except the special pseudo register $RA$ representing the return
+address (line 26). In x86, the return address is normally stored
+on the stack when a function is called, but in LAsm (also in
+CompCert assembly) it is saved in this special pseudo register $RA$.
+It is called a pseudo register because it does not really exist
+in a physical machine. 
+
+Fig.~\ref{fig:lasm_instructions} presents a small subset of assembly
+instructions in LAsm, with their small-step formal semantics
+detailed in Fig.~\ref{fig:lasm_semantics}.
+The statements and their semantics are
+mostly similar to the standard x86 assembly language, except the
+special treatment of stack with the two {\it Pallocframe} and {\it Pfreeframe}
+pseudo instructions. In actual x86, the stack is a consecutive sequence
+of memory but the CompCert memory model cannot reflect that stack blocks
+are adjacent and they are allocated and freed following some stack disciplines.
+Instead, the CompCert memory model introduces the two pseudo instructions
+to allocate and deallocate stack blocks which get pretty-printed later
+into appropriate stack increment and decrement x86 instructions. 
+As shown in Fig.~\ref{fig:lasm_semantics}, {\it Pallocframe} first allocates
+a new memory block of specified size and saves the old stack pointer and return
+address into the block at specified offsets, while {\it Pfreeframe} restores
+the old stack pointer and return address saved in the block and frees the memory
+block.
+
+To support parametric layer interfaces, the semantics of LAsm is also instrumented
+in the similar way ClightX is extended from Clight.
+As shown in Fig.~\ref{fig:lasm_step}, we have introduced a new kind of
+external function \texttt{exec\_step\_prim\_call} for assembly-style primitives
+in addition to the external function \texttt{exec\_step\_external} for C-style primitives.
+This is necessary because a module directly implemented LAsm may not follow the C
+calling convention. Note that the ``style'' here denotes the calling convention
+and not the language the module is implemented in. For example, C-style
+primitives can certainly be implemented in LAsm as long as it follows the C calling
+convention.
+
 
 \subsection{Code Module in LAsm}
 
@@ -635,7 +643,21 @@ Unlike the case of ClightX, code modules implemented in LAsm are
 directly written manually. This is acceptable because LAsm syntax
 is not quite verbose, and especially because the portion of the code
 directly implemented in assembly is normally quite small in most
-of system software.
+system software. As an example, the implementation of the kernel
+context switch function in LAsm is shown in the Figure \ref{fig:lasm_cswitch}
+with the standard assembly implementation shown in the Figure \ref{fig:cswitch}.
+
+\begin{figure}
+\lstinputlisting [language = Coq] {src/cswitch.v}
+\caption{Implementation of context switch in LAsm}
+\label{fig:lasm_cswitch}
+\end{figure}
+
+\begin{figure}
+	\lstinputlisting [language={[x86masm]Assembler}] {src/cswitch.s}
+	\caption{Implementation of context switch in assembly}
+	\label{fig:cswitch}
+\end{figure}
 
 The verified ClightX
 source code can be compiled by our extended CompCertX compiler
@@ -666,12 +688,12 @@ module that consists of a triple $\layer{L_1}{M}{L_2}$ plus a mechanized proof
 object showing that the layer implementation $M$ that is built on top of the
 layer interface $L_1$ (the {\em underlay interface}), i.e.,
 $\llbracket{}M\rrbracket{}L_1$, is a {\em contextual refinement} of the
-desirable layer interface $L_2$ above (the {\em overlay interface}).
+desired layer interface $L_2$ above (the {\em overlay interface}).
 
 \begin{definition}[Contextual Refinement]
 We say that $\llbracket{}M\rrbracket{}L_1$ contextually refines
 $L_2$ if, and only if, for any module (context) $P$ disjoint from $M$,
-the behavior of $\llbracket{}{P \oplus M}\rrbracket{}L_1$ is subset of
+the behavior of $\llbracket{}{P \oplus M}\rrbracket{}L_1$ is a subset of
 that of $\llbracket{}P\rrbracket{}L_2$.
 \end{definition}
 
@@ -685,7 +707,7 @@ that of $\llbracket{}P\rrbracket{}L_2$.
 
 
 Given that $\llbracket{}M\rrbracket{}L_1$ contextually refines $L_2$,
-and the deep specifications in $L_2$ captures everything contextually observable
+and the deep specifications in $L_2$ capture everything contextually observable
 about running $M$ over its underlay $L_1$, we can prove any property of $M$ directly using
 the interface $L_2$ alone, and we would never need to look into the actual
 implementations in $M$. Since all of our specifications are deterministic
@@ -706,7 +728,7 @@ in-memory data by directly accessing the relevant memory. As shown in
 Fig.~\ref{fig:spec:object-original}, we achieve this by utilizing the CompCert
 memory permissions~\cite{leroy08} to hide the relevant memory region at overlay,
 which prevents the context code from accessing the relevant memory. These
-logical permissions do not correspond to any physical protection mechanism, but
+logical permissions do not correspond to any physical protection mechanism but
 are used to ensure that the abstract machine at overlay gets stuck if any code
 tries to directly access this portion of memory. The safety proof of our entire
 system (the system never gets stuck) guarantees that such a situation never
@@ -730,7 +752,7 @@ to $L_2$. In practice, the {\em downward simulation} is easier to
 achieve, and this is what we prove in our framework. Relying
 on the fact that the specifications are deterministic, the proof
 is then later turned into the converse {\em upward simulation}
-similar to the the way in CompCert.
+similar to the way in CompCert.
 
 \begin{definition}[Downward Simulation]
 We say that there is a downward simulation from $L_2$ to
@@ -751,10 +773,10 @@ such that every step in $\llbracket{}P\rrbracket{}L_2$ can be simulated by
 some steps in $\llbracket{}{P \oplus M}\rrbracket{}L_1$.
 As shown in Fig.~\ref{fig:spec:object-original}, the relation $R$ can
 map the memory and abstract states in $L_2$ to the same memory and abstract
-states in $L_1$, with the exception of the part of memory that is hidden in
-$L_2$ and the new abstract states introduced in $L_2$. Since the part of
+states in $L_1$, with the exception of the part of the memory that is hidden in
+$L_2$ and the new abstract states introduced in $L_2$. Since the part of the
 memory is hidden in $L_2$, this part of memory is not mapped to
-the same memory containing private data in $L_1$, and in fact it is not
+the same memory containing private data in $L_1$, and in fact, it is not
 mapped to any state in $L_1$. Instead, the new abstract states in $L_2$
 is mapped to the concrete private data in $L_1$'s memory. The concrete
 mappings vary depending on the concrete data structures used to implement
@@ -769,9 +791,9 @@ to the abstract logical list defined in the layer interface.
 Based on the definition of the downward simulation, the simulation needs
 to be shown for every step in $\llbracket{}P\rrbracket{}L_2$.
 Note that the only step that needs special
-attention is when $P$ calls one of new primitives introduced in $L_2$.
+attention is when $P$ calls one of the new primitives introduced in $L_2$.
 Because for any other
-steps, $\llbracket{}{P \oplus M}\rrbracket{}L_1$ can make exactly same step
+steps, $\llbracket{}{P \oplus M}\rrbracket{}L_1$ can make the exact same step
 to reach a matching state at the underlay.
 When $P$ calls any one of the new primitives in $L_2$, this can be simulated
 by running the corresponding function defined in $M$ at the underlay.
@@ -792,20 +814,20 @@ $s_1'$. The second part is to show that $s_1'$ is also related to $s_2'$ by $R$.
 Instead of mixing these two proof together, our framework provides a way to
 systematically isolate these two otherwise related proofs. First, we write
 a new specification for each function $f$ in terms of the underlay states.
-This specification is called {\em low level specification} in our framework,
-in contrast to the {\em high level specification} of the primitive at overlay
+This specification is called {\em low-level specification} in our framework,
+in contrast to the {\em high-level specification} of the primitive at overlay
 in terms of the overlay states. Next, we prove that $f$ satisfies its
-{\em low level specification}. This step is called {\em code verification}.
-Last, we prove the simulation from the (high level) specification of $p$ to the
-{\em low level specification} for $f$ over the refinement relation $R$.
+{\em low-level specification}. This step is called {\em code verification}.
+Last, we prove the simulation from the (high-level) specification of $p$ to the
+{\em low-level specification} for $f$ over the refinement relation $R$.
 This is called the {\em refinement proof}. The advantage of splitting these
-two works are that we do not need to worry about the simulation when we
+two works is that we do not need to worry about the simulation when we
 perform the {\em code verification}, while no code is involved when
 we establish the {\em refinement proof}.
 
-A low level specification has a similar type as the primitive
-(high level) specification in a layer interface.
-As an example, the low level specification for the console buffer
+A low-level specification has a similar type as the primitive
+(high-level) specification in a layer interface.
+As an example, the low-level specification for the console buffer
 implementation (shown in Fig.~\ref{fig:source:cons-buf}) is shown
 in Fig.~\ref{fig:cons_buf_low_spec}.
 Here, $\textsf{lspec}~ ge~ args~ (m,~d)~ rval~ (m',~d')$
@@ -821,17 +843,17 @@ block and offset on the initial memory. $\textsf{Mem.load}$ is the opposite
 operation that loads a value in the specified location of the memory.
 
 \ignore{
-As shown in the figure, the low level specifications has equivalent
+As shown in the figure, the low-level specifications has equivalent
 number of cases as in the source code, and in fact, they are very close
 to the source code. Thus, it is relatively easy to show that the source code
-satisfies the low level specification shown in
+satisfies the low-level specification shown in
 Fig.~\ref{fig:cons_buf_low_spec} and the proof can be achieved nearly
 automatically by our proof tactics.
 }
 
 \begin{figure}
 \lstinputlisting [language = Coq] {src/cons_buf_low_spec.v}
-\caption{Low level specifications of the circular console buffer}
+\caption{Low-level specifications of the circular console buffer}
 \label{fig:cons_buf_low_spec}
 \end{figure}
 
@@ -848,9 +870,9 @@ on one type of proof at a single moment.
 
 When we introduce and verify a code module, we always first perform {\it data abstraction},
 i.e., we abstract the concrete data stored in the underlay memory into a logical
-abstract states in the overlay, and provide very simple getter/setter interface in
+abstract states in the overlay and provide very simple getter/setter interface in
 the overlay to manipulate the new abstract states. The getter and setter methods
-are implemented at underlay with simple memory accesses that does not involve much
+are implemented at underlay with simple memory accesses that do not involve much
 complex logic or cases. Thus, the {\it code verification} is relatively simple in this case
 given the simplicity of the code and similarity between the specification and the
 implementation of getters and setters. The main proof focus of this pattern would
@@ -870,7 +892,7 @@ the actual {\it code verification}, and we detail our techniques in Chapter
 \ref{chapter:automation}.
 
 We have discovered that following the above two patterns significantly reduces the
-amount of proof efforts required to prove complex systems by only focusing on one
+amount of proof effort required to prove complex systems by only focusing on one
 of the two main proof tasks while completely automating the other.
 It also allows us to implement much stronger automation support for each isolated
 proof component because, for example, there is no complex code logic involved in the
@@ -921,11 +943,11 @@ primitive-by-primitive basis. One can imagine that due to the non-trivial $R$,
 this simulation proof could be complex.
 
 The complexity may further explode when this logical complexity gets mixed with
-the complexity of handling the accesses to the CompCert memory. CompCert memory
+the complexity of handling the accesses to the CompCert memory. The CompCert memory
 model is an axiomatized model where the properties are defined through a big
 list of axioms without a specific implementation. Any concrete implementation of
 this memory model needs to satisfy all the axioms. Thus, one cannot perform any
-simple evaluations on the memory, but needs to keep applying appropriate axioms
+simple evaluations on the memory but needs to keep applying appropriate axioms
 to derive any desired properties. This severely limits the room for proof
 automation and significantly increases the proof size and memory consumption for
 proof compilation as the proof gets more complex. To separate the complexity
@@ -946,17 +968,17 @@ One can easily observe that the representations shown in Fig.~\ref{fig:spec:cons
 extremely similar to the actual implementations shown in Fig.~\ref{fig:source:cons-buf}.
 Given the similarity, one can easily come up with a refinement relation $R$ which
 maps the concrete values in the memory to their appropriate logical values in $d$.
-The simulation proof over $R$ is also relatively easy and there is no other
+The simulation proof over $R$ is also relatively easy and there are no other
 complex factors interfering with the ones from handling the CompCert memory.
 
 Once the contextual refinement between $\llbracket{}M\rrbracket{}L_{low}$ and
 $L_{mid}$ is proven, the contextual refinement between $L_{mid}$ and $L_{high}$
-can be proven with no code module involved. Thus, this part of proof is completely
+can be proven with no code module involved. Thus, this part of the proof is completely
 logical and the refinement relation $R_{cons\_buf}$ (shown in Fig.~\ref{fig:ref:cons-buf})
 in this case only needs to relate two sets of abstract states.
 In Fig.~\ref{fig:ref:cons-buf}, \textsf{Abs} is the type of the abstract states
 in each layer interface.
-The overall layer hierarchy of entire console buffer is shown in Fig.~\ref{fig:layer:cons-buf}.
+The overall layer hierarchy of the entire console buffer is shown in Fig.~\ref{fig:layer:cons-buf}.
 This kind of two-stage proof strategy
 significantly reduces the complexity
 of the proof and lifts the main complex proof effort to pure logical level.

@@ -19,7 +19,7 @@ using separate virtual address spaces. It implements both message
 passing and shared memory inter-process communication protocols. As a
 hypervisor, it can also boot recent versions of unmodified Linux
 operating systems inside a virtual machine.  Unlike large commercial
-operating systems like Linux or Unix, mCertiKOS kernel only implements
+operating systems like Linux or Unix, the mCertiKOS kernel only implements
 a small subset of the POSIX-like API, e.g., process creation and
 control, physical and virtual memory management, and
 inter-process communication. It does
@@ -31,7 +31,7 @@ the white boxes represent raw hardware devices; the green boxes denote the
 device drivers, and the gray boxes are the data structures used by the drivers.
 The purple/black lines show how these device and driver components are related.
 Note that the drivers in mCertiKOS are not verified; they are implemented in
-about 1,600 lines of C and assembly code, and would be considered as part of the
+about 1,600 lines of C and assembly code and would be considered as part of the
 trusted computing base (if they are kept inside the kernel). 
 
 We take mCertiKOS's lowest level machine model, {\it LAsm}, and extend it with
@@ -41,7 +41,7 @@ with the processor, parts of the device state change without the processor
 explicitly modifying them. Though these ``volatile'' device states can change
 nondeterministically, the processor itself only ever observes a ``current''
 state when it reads the device data via an explicit I/O operation. The processor
-does not, and in fact {\it cannot}, care about any states that the device may
+does not, and in fact, {\it cannot} care about any states that the device may
 enter between these observed states. Therefore, instead of designing
 fine-grained small-step transition systems that model all possible interleaved
 executions amongst the processor and devices, our devices simply perform an
@@ -127,7 +127,7 @@ unscalable.
 	\label{fig:layer_pre}
 \end{figure}
 
-Furthermore, it is not obvious how to apply techniques presented
+Furthermore, it is not obvious how to apply the techniques presented
 in section \ref{chapter:framework}
 to handle hardware interrupts. Figure~\ref{fig:layer_pre} shows one
 such attempt.  Here, $\textsf{P}$ denotes the kernel/user-level
@@ -137,11 +137,11 @@ and driver layers.  With interrupts turned on in the kernel, it is
 immediately unclear how to show contextual refinement among different
 layers. For a kernel function like $\textsf{c\_init}$, it cannot be
 easily refined into an atomic specification as the code can be
-interrupted at any point during the execution by a device interrupt,
-unless all possible interleaving of interrupts are encoded into the
+interrupted at any point during the execution by a device interrupt
+unless all possible interleavings of interrupts are encoded into the
 specification itself. Similarly, for a device driver function like
 $\textsf{puts}$, the code can be interrupted at any moment by
-interrupts triggered from other devices or the device itself.
+interrupts triggered by other devices or the device itself.
 
 \ignore{In our hardware model, the states of CPU (registers and
   memory) and the states of v each device (device registers and
@@ -239,7 +239,7 @@ and the interrupt handler of the device.  Next, we use contextual
 refinement to introduce a new layer that has a more abstract interrupt
 model. On this layer, we can introduce and verify even interruptible
 driver code (e.g., $\textsf{puts}$) while still enforcing strong
-isolation and providing clean interface to the kernel.
+isolation and providing a clean interface to the kernel.
 
 The rest of this chapter is organized as follows.
 Sec.~\ref{sec:model} defines a formal machine model

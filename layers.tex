@@ -23,7 +23,7 @@ with the top-most layer interface containing the full abstract behaviors of
 the verified device drivers. Next, we introduce these layer interfaces and
 the verified driver modules one by one. The implementations of various
 concepts in Coq is shown in Fig.~\ref{fig:device:model}, with the concrete
-examples used in the rest of sections listed on the right hand side.
+examples used in the rest of the sections listed on the right-hand side.
 We explain the concepts and implementations in more detail as we get to the
 corresponding layer implementation.
 
@@ -100,7 +100,7 @@ modeling device access operational semantics.
 
 Traditionally, refinement is proven by an upward simulation from implementation
 to specification to ensure soundness, i.e., any property we prove on the overlay
-specification is guaranteed to hold at underlay implementation. In our framework,
+specification is guaranteed to hold at the underlay implementation. In our framework,
 we also prove the upward simulation. But as a proof technique, we first prove the
 downward simulation and later turn it into an upward one using the fact that our
 machine semantics is deterministic with respect to the external events. We model
@@ -114,10 +114,10 @@ On the other hand, if the number of simulating underlay steps is not constrained
 downward simulation could potentially be fulfilled by bogus implementations,  
 We always insist writing the deep specifications for the overlay interface to
 capture everything contextually observable for the underlay implementation.
-Thus, the form of our high level specifications at overlay is not some random
-high level relations vaguely restricting our underlay behaviors, but actual
+Thus, the form of our high-level specifications at overlay is not some random
+high-level relations vaguely restricting our underlay behaviors, but actual
 precise specifications of what should be the exact outcome after running
-corresponding abstract primitive, explained in terms of abstract states.
+corresponding abstract primitive explained in terms of abstract states.
 Thus, under same preconditions enforced by the primitive specification, the
 behavior of overlay primitive and underlay implementation should be exactly
 the same over the same external events. 
@@ -137,9 +137,9 @@ definitions, $\textsf{nth}$ is a list operation defined in Coq, which takes a
 natural number $n$, a list $l$, a default value $v$, and returns the $n$'th
 value in the list $l$. In the case when the index is invalid, it returns the
 default value $v$. $\textsf{nth\_error}$ is a similar operation but returns
-either a value or $\textsf{none}$ in the case of invalid index, instead of
+either a value or $\textsf{none}$ in the case of an invalid index, instead of
 returning the default value. $\textsf{Zlength}$ is another list operation that
-returns the length of provided list as an integer.
+returns the length of the provided list as an integer.
 
 \begin{invariant}[valid serial port]
 The base address of the I/O port to access \textsf{COM1} is always
@@ -196,7 +196,7 @@ $\textsf{maxIntr} + 1$.
 \forall n,~ 0 \le n \le ioapic.maxIntr \rightarrow 16 \leq \textsf{nth}~ n~ (ioapic.\textsf{irqs})~ 0 \leq 254
 \end{align*}
 \noindent\textnormal{The value in the interrupt-vector is the IRQ number raised
-	on the connected CPU. This value can be configured during the runtime, and
+	on the connected CPU. This value can be configured during the runtime and
 	should be within the specified range.}
 \end{invariant}
 
@@ -261,10 +261,10 @@ invariant on the abstract console buffer.
 \subsection{Layer Interface DSerialIntro}
 \label{sec:dserialintro}
 
-The next three layer interfaces are designated to the verification of serial
+The next three layer interfaces are designated for the verification of serial
 driver. On top of the underlay interface DAbsConsoleBufferIntro, we introduce a
 global variable $\textsf{serial\_exist}$ of type $\textsf{bool}$ to indicate
-whether the serial device is initialized or not, and provide a getter and setter
+whether the serial device is initialized or not and provide a getter and setter
 function called \textsf{get\_serial\_exist}, \textsf{set\_serial\_exist},
 respectively. Accordingly, in \textsf{DSerialIntro}, we introduce a new abstract
 state $\textsf{serial\_exist}: \textsf{bool}$ and two new getter and setter
@@ -298,13 +298,13 @@ from the original abstract states $d$, where the attribute $attr$ is
 replaced by the new value $val$, but otherwise the same as $d$.
 Note that the return type of the
 specification function is an option type, and the specification gets stuck
-(returns \textsf{None}) when the argument is not within the bound of 32-bit
+(returns \textsf{None}) when the argument is not within the bound of a 32-bit
 integer. This is the requirement that any future caller of this primitive needs
 to satisfy.
 
 \begin{figure}
 	\lstinputlisting [language=Caml] {src/serial_exist_lowspec.v}
-	\caption{The low level specification of C function \texttt{set\_serial\_exist}}
+	\caption{The low-level specification of C function \texttt{set\_serial\_exist}}
 	\label{fig:serial-exist-lowspec}
 \end{figure}
  
@@ -313,8 +313,8 @@ underlay interface, and our goal is to prove the contextual refinement between
 the code running on the underlay and the abstract overlay interface
 DSerialIntro. The contextual refinement is proven in three steps.
 
-First, we write a separate low level specification for the C code
-\textsf{set\_serial\_exist} with the low level memory load and store operations
+First, we write a separate low-level specification for the C code
+\textsf{set\_serial\_exist} with the low-level memory load and store operations
 on the underlay interface, as shown in Fig.~\ref{fig:serial-exist-lowspec}.
 Here, ``Inductive'' is the Coq keyword used to define a logical predicate
 inductively, with the vertical bar ``$|$'' used to separate different cases
@@ -331,15 +331,15 @@ new memory after writing the value on the location represented by the memory
 block and offset on the initial memory. As shown in the figure, the
 specification has two cases as in the source code, and in fact, it is very close
 to the source code. Thus, it is relatively easy to show that the source code
-satisfies the low level specification shown in
+satisfies the low-level specification shown in
 Fig.~\ref{fig:serial-exist-lowspec} and the proof can be achieved nearly
 automatically by our proof tactics.
 
-Second, we prove a simulation from the low level specification at underlay shown
+Second, we prove a simulation from the low-level specification at the underlay shown
 in Fig.~\ref{fig:serial-exist-lowspec} and the overlay specification shown in
 Fig.~\ref{fig:serial-exist}, with a refinement relation that trivially maps the
 value of the global variable in the memory at underlay to the new abstract state
-at overlay. This part of proof, which we call {\em data abstraction}, can
+at overlay. This part of the proof, which we call {\em data abstraction}, can
 vary depending on the kind of concrete data structures in memory and the
 abstracted states in the overlay interface. In the case of
 $\textsf{set\_serial\_exist}$, the proof is very simple given that it is just a
@@ -399,14 +399,14 @@ be properly configured.
 
 Both \textsf{serial\_getc} and \textsf{serial\_init} do not contain any loops
 and are relatively easy to verify. Note that \textsf{serial\_init} detects the
-existence of serial device, sets the proper configuration based on our hardware
+existence of the serial device, sets the proper configuration based on our hardware
 connection parameters, and uses \textsf{set\_serial\_exist} to set the abstract
 state \textsf{serial\_exist} when the initialization succeeds.
 
 In the rest of this subsection, we present details on the function
 \textsf{serial\_putc}. As shown in Fig.~\ref{fig:serial_putc}, the
 implementation of \textsf{serial\_putc} involves a loop to poll the status of
-TxBuf (through the \textsf{serial\_read} primitive of serial device) until it is
+TxBuf (through the \textsf{serial\_read} primitive of the serial device) until it is
 empty or reaches the maximum waiting steps. We assume the correctness of
 hardware. Thus, we have a separate assumption on the event log stating the TxBuf
 always become empty before the maximum iteration is reached.
@@ -433,7 +433,7 @@ only consumed a single \textsf{SendingCompAck} event in this case, we simply
 fetch the next transmitting event from the environment log ($\ell^{env}$) and
 update the transmitting log. Recall that function $\textsf{next}$ is defined in
 the Sec.~\ref{sec:model}. It takes a local log, finds the first relevant event
-with respect to this log and returns a pair of event and the updated log.
+with respect to this log and returns a pair of the event and the updated log.
 
 When the buffer is non-empty, the device is still in the middle of transmitting
 messages and the execution needs to wait until the transmission is complete. In
@@ -457,7 +457,7 @@ prove that once the loop terminates, the transmission buffer (TxBuf) is empty so
 that sending new messages to the serial will not overwrite the previous
 messages. Recall that because of our assumption on the correctness of the
 hardware, there is always an index $t$ between $0$ and $12800$, at which
-iteration the loop terminates and serial device gets ready for the next write.
+iteration the loop terminates and the serial device gets ready for the next write.
 Thus, we have designed the following loop invariant:
 \[
 \begin{array}{l}
@@ -466,10 +466,10 @@ Thus, we have designed the following loop invariant:
 \end{array}
 \]
 
-Here, $serial_i$ indicates the value of abstract state $serial$ after the
+Here, $serial_i$ indicates the value of the abstract state $serial$ after the
 $i^{th}$ iteration of the loop, where $serial_0$ indicates the initial state
 before entering the loop.
-With this loop invariant, the proof can be achieved with the help from
+With this loop invariant, the proof can be achieved with the help of
 our automation tactic libraries.
 
 
@@ -532,10 +532,10 @@ and after ($serial', le'$) the loop:
 
 \noindent{}where, $tl$ is the standard list operation that retrieves the tail of
 a list, \textsf{Forall  isChar} is an inductive predicate to describe the
-property that all the characters in $str$ is a valid character ($\textsf{fun}~x
+property that every character in $str$ is a valid character ($\textsf{fun}~x
 \rightarrow 0 \le x \le 255$), and $\textsf{cons\_buf\_mid}~ str~ cb~ n$ is a
 function shown in Fig.~\ref{fig:cons_buf_mid_v}. This function calculates the
-console buffer when the first $n+1$ characters in $str$ is moved to $cb$.
+console buffer when the first $n+1$ characters in $str$ are moved to $cb$.
 
 \begin{figure}
 	\lstinputlisting [language=Caml] {src/cons_buf_mid.v}
@@ -562,7 +562,7 @@ The loop invariant is constructed as:
 \]
 
 This loop invariant has two parts: the first part shows the states during the
-loop; and the second part shows the states when the loop terminates.
+loop; the second part shows the states when the loop terminates.
 
 \subsection{Layer Interface DIOApic}
 
@@ -642,12 +642,12 @@ The primitives \textsf{ioapic\_mask} and \textsf{ioapic\_unmask} are used to
 mask and unmask a particular interrupt line designated for a device. It is not
 allowed to designate a single interrupt line for multiple devices. Thus, the
 masking status of each interrupt line could be later abstracted into the
-internal state of corresponding abstract device object to enforce our isolation
+internal state of the corresponding abstract device object to enforce our isolation
 policy. The verification of \textsf{ioapic\_mask} and \textsf{ioapic\_unmask}
 is similar to that of \textsf{ioapic\_enable}.
 
 The verification of the four functions introduced in DIOApic is reasonably
-simple, and can be automated using our tactics.
+simple and can be automated using our tactics.
 
 \begin{figure}
 	\lstinputlisting [language=c, multicols=2] {src/ioapic_enable.c}
@@ -663,7 +663,7 @@ Two primitives are introduced under the layer interface DLApic:
 later contextual refinement of interrupt models, the operations of two interrupt
 controllers will be merged and canceled to derive the abstract interrupt model,
 where an interrupt triggered by the serial device is only related to the serial
-device object, and is independent from either of the interrupt controllers or
+device object and is independent of either of the interrupt controllers or
 the CPU.
 
 
