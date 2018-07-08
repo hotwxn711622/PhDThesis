@@ -453,9 +453,11 @@ are used to read, write, and clear the page table entries, respectively, while
 the function \textsf{set\_IDPTE} is to map each page table entry in \textsf{IDPMap}
 as an identity map with a proper permission.
 
+\ignore{
 At this layer interface, a client program has arbitrary access to the page table structure.
 Thus, we cannot yet introduce any reasonable invariant as, e.g., one can read a page table
 entry with an invalid page directory entry.
+}
 
 The verification of these getter and setter are trivial and can be achieved with a single tactic call,
 similarly to the example proof shown in Figure \ref{fig:cb_init_proof}.
@@ -483,10 +485,16 @@ similarly to the example proof shown in Figure \ref{fig:cb_init_proof}.
 \paragraph{Layer Interface MPTOp}
 
 On top of the MPTIntro, we introduce a new layer interface and implement
-slightly higher level functions reading and writing the page table mappings that directly
-take the virtual address as argument (see Figure \ref{fig:ptable_op_c}).
+slightly higher level functions reading and writing the page table mappings.
+As shown in Figure \ref{fig:ptable_op_c}, these functions are very similar
+to the ones in the layer interface MPTIntro (shown in Figure \ref{fig:ptable_getter_setter_c}),
+except that they directly take the full virtual address as the argument,
+converts that into proper page directory and page table indexes, and
+calls into proper lower level primitive in MPTIntro.
 In addition, the function \textsf{pt\_read} also checks that the corresponding page
 directory entry is valid, and returns zero otherwise.
+This makes sure that the clients never accidentally read the garbage page table
+entry without a valid page directory entry being set.
 
 At MPTOp, we also introduce the function to initialize the \textsf{IDPMap} as a identity map.
 It's implementation is shown in Figure \ref{fig:idpde_init_c}, and the specification is shown
