@@ -496,22 +496,22 @@ directory entry is valid, and returns zero otherwise.
 This makes sure that the clients never accidentally read the garbage page table
 entry without a valid page directory entry being set.
 
-At MPTOp, we also introduce the function to initialize the \textsf{IDPMap} as a identity map.
-It's implementation is shown in Figure \ref{fig:idpde_init_c}, and the specification is shown
-in Figure \ref{fig:idpde_init_v}.
+At MPTOp, we also introduce the function to initialize the \textsf{IDPMap} as an identity map.
+As shown in Figure c, \textsf{idpde\_init} first calls into the lower layer
+initialization primitive \textsf{mem\_init}, then initializes each page table entry to an identity
+map with proper permission (kernel-only for low memory, and user accessible for high memory).
+The specification of Figure \ref{fig:idpde_init_c} is shown in Figure \ref{fig:idpde_init_v},
+and one can observe that it is an extension of the specification of \textsf{mem\_init}
+such that it also initializes the \textsf{idpde} field in the abstract state.
+As in this layer, our initialization method also initializes the \textsf{IDPMap}, we can
+introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 
 Despite the nested while loop, the verification of the \textsf{idpde\_init} is reasonably
 intuitive and can be performed similarly to other functions with loops as before.
-As in this layer, our initialization method also initializes the \textsf{IDPMap}, we can
-introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 
 
 \paragraph{Layer Interface MPTCommon}
 
-In this layer interface, we further introduce a higher level functions to allocate and free the first level page directory entries.
-In addition, the initialization function of page tables is added to initialize the low memory section as identity map with kernel-only
-permission, and mark the rest of sections as unallocated.
-Their implementations are shown in Figure \ref{fig:ptablecomm_c}, and specifications are presented in Figure \ref{fig:ptablecomm_v}.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptablecomm.c}
@@ -525,14 +525,67 @@ Their implementations are shown in Figure \ref{fig:ptablecomm_c}, and specificat
 	\label{fig:ptablecomm_v}
 \end{figure}
 
+In this layer interface, we further introduce a higher level functions to allocate
+and free the first level page directory entries.
+As shown in Figure \ref{fig:ptablecomm_c}, the function \textsf{pt\_alloc\_pde}
+first dynamically allocates a new physical page for page table entries and if the
+allocation succeeds, maps the corresponding page directory entry to the allocated
+page with proper permission. Finally, it loops over every page table entry in the allocated
+page and marks them as unallocated. On the other hand, the function
+\textsf{pt\_free\_pde} removes the mapping for the page directory entry and
+frees the page for corresponding page table entries.
+
+In addition, the initialization function of page tables is added to initialize each page table
+for every process. As shown in Figure \ref{fig:ptablecomm_c}, the function
+\textsf{pt\_init\_comm} goes through every page table, and marks the page directory
+entries in the low memory section as identity map with kernel-only permission, while
+it marks the rest of page directories as unallocated.
+
+The specifications of the functions are presented in Figure \ref{fig:ptablecomm_v}.
+For example, the specification of \textsf{pt\_alloc\_pde} simply finds the first free
+page and maps that with the corresponding page directory entry. Note that, we could
+add additional validations into the specifications that do not exist in the actual code.
+When these validation fail, the specification gets stuck. As in the end, we prove that
+no top level system call could get stuck on any potential user input, these validations
+are the expectations of usage of these primitive in the higher layers.
+For example, the specifications of \textsf{pt\_alloc\_pde}
+also validates that these primitives are not called to modify the page table of currently
+running thread, and the corresponding page directory entry was not set before.
+Similarly the specification of \textsf{pt\_free\_pde} validates that the primitive is not
+called on running thread, and the page directory we are trying to remove was properly
+set before. The specification of \textsf{pt\_init\_comm} adds upon the specification
+of \textsf{idpde\_init} the initialization of \textsf{ptpool} field in the abstract state.
+
+
 The verification of these method are similar to the ones presented before containing the loops, and are not detailed here.
 
 \paragraph{Layer Interface MPTKern}
 
-Next, we introduce the two primitives \textsf{pt\_insert} and \textsf{pt\_rmv} that links and unlinks the provided virtual and physical
-pages, and introduce a new initialization function that further initializes the high memory section of the page table 0 (kernel page table)
-to the identity map, so that the whole page table 0 is the identity map. Their implementations are shown in Figure
-\ref{fig:ptablekern_c}, and part of specifications can be found in Figure \ref{fig:ptablekern_v}.
+Next, we introduce the two primitives \textsf{pt\_insert} and \textsf{pt\_rmv} that
+link and unlink the provided virtual to physical address mapping.
+As shown in Figure \ref{fig:ptablekern_c}, the function \textsf{pt\_insert}
+first checks whether the corresponding page directory entry is already mapped
+to any page table entries and if not, allocates one through the \textsf{pt\_alloc\_pde}
+primitive. Then it maps the provided virtual address to the physical address in the
+corresponding page table entry through the \textsf{pt\_insert\_aux} primitive.
+It returns a special magical number when the allocation of new page directory entry
+mapping fails due to the lack of available physical pages.
+On the other hand, the function \textsf{pt\_rmv} removes the virtual to physical
+address mapping if the mapping exists before.
+Last, recall that the previous initialization primitive \textsf{pt\_init\_comm} only
+initializes the low memory to the identity map. We would like to reserve the page
+table number 0 for the kernel thread and initialize the whole page table as an
+identity map so that we can access any piece of data when we trap into the kernel.
+Thus, in this layer interface, we introduce a new initialization primitive
+\textsf{pt\_init\_kern} on top of \textsf{pt\_init\_comm}
+(see Figure \ref{fig:ptablekern_c}) such that it also
+initializes the high memory portion as an identity map for the page table number 0.
+
+As examples, the specifications of \textsf{pt\_rmv} and \textsf{pt\_init\_kern}
+primitives are shown in Figure \ref{fig:ptablekern_v}.
+Note that the specification of \textsf{pt\_rmv} contains more validations
+than the actual implementation.
+
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptablekern.c}
@@ -548,7 +601,7 @@ to the identity map, so that the whole page table 0 is the identity map. Their i
 
 \paragraph{Layer Interface MPTInit}
 
-Finally, in this layer interface MPTInit, we introduce the main initialization function of the page table
+In this layer interface MPTInit, we introduce the main initialization function of the page table
 \textsf{pt\_init}, where it first calls \textsf{pt\_init\_kern} in interface MPTKern to initialize the 
 page table structure properly, sets the current page table (CR3) to page table 0, then enable
 the paging (see Figure \ref{fig:ptinit_c}).

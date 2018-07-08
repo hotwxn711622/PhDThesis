@@ -1,9 +1,7 @@
 uint pt_insert(uint proc_index, uint vadr, uint padr, uint perm) {
-  uint result;
+  uint result = 0;
   uint pi = pt_read_pde(proc_index, vadr);
-  if (pi != 0)
-    result = 0;
-  else {
+  if(pi == 0) {
     result = pt_alloc_pde(proc_index, vadr);
     if (result == 0)
       result = MagicNumber;
