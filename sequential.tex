@@ -668,18 +668,6 @@ In addition, we also introduce the \textsf{kctx\_switch} function implemented in
 	\label{fig:kctxt_c}
 \end{figure}
 
-
-\paragraph{Layer Interface PKContextNew}
-
-Next, the layer interface PKContextNew introduces one new primitive \textsf{kctxt\_new}, which finds the next
-available process, and sets the stack pointer and the function entry pointer properly in its kernel context.
-As shown in Figure \ref{fig:kctxtnew_c}, we statically allocate one page for each potential process for its kernel
-stack, and sets the stack pointer of each new process to be the top of corresponding stack page.
-The $-4$ subtracted from the stack top is the typical safety enhancement to make sure we are less likely to
-exceed the stack boundary when we manipulate the stack, and it is not really necessary here as our kernel
-is formally verified for absence of stack overflow.
-The abstract specification of \textsf{kctxt\_new} is shown in Figure \ref{fig:kctxtnew_v}.
-
 \begin{figure}
 	\lstinputlisting [language=C] {src/kctxtnew.c}
 	\caption{Implementation of \textsf{kctxt\_new} in C}
@@ -692,6 +680,17 @@ The abstract specification of \textsf{kctxt\_new} is shown in Figure \ref{fig:kc
 	\label{fig:kctxtnew_v}
 \end{figure}
 
+\paragraph{Layer Interface PKContextNew}
+
+Next, the layer interface PKContextNew introduces one new primitive \textsf{kctxt\_new}, which finds the next
+available process, and sets the stack pointer and the function entry pointer properly in its kernel context.
+As shown in Figure \ref{fig:kctxtnew_c}, we statically allocate one page for each potential process for its kernel
+stack, and sets the stack pointer of each new process to be the top of corresponding stack page.
+The $-4$ subtracted from the stack top is the typical safety enhancement to make sure we are less likely to
+exceed the stack boundary when we manipulate the stack, and it is not really necessary here as our kernel
+is formally verified for absence of stack overflow.
+The abstract specification of \textsf{kctxt\_new} is shown in Figure \ref{fig:kctxtnew_v}.
+
 
 \paragraph{Layer Interface PThreadIntro}
 
@@ -701,6 +700,8 @@ processes. Each TCB contains the state of the corresponding thread, and the inde
 the previous and next TCBs in the TCB pool. This way, we can link TCBs in both directions
 to form bi-directional thread queues. As shown in the figure, PThreadIntro also implements
 a list of getter and setter primitives to manipulate the logical TCB pool.
+These getter and setter functions provide arbitrary access to the TCB fields,
+and thus, we cannot impose any reasonable invariant on TCBs at this layer.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/tcb.c}
@@ -708,11 +709,17 @@ a list of getter and setter primitives to manipulate the logical TCB pool.
 	\label{fig:tcb_c}
 \end{figure}
 
+\begin{figure}
+	\lstinputlisting [language=C] {src/tdq.c}
+	\caption{Implementation of thread queue in C}
+	\label{fig:tdq_c}
+\end{figure}
+
 \paragraph{Layer Interface PThreadInit}
 
-In this layer interface, we introduce the new initialization function \textsf{thread\_init} to initialize
-the logical TCB pool. As shown in Figure \ref{fig:tcb_c}, the thread state in every TCB is marked
-dead, and the previous and next TCB indexes are set to the invalid index.
+In this layer interface, we introduce a new initialization function \textsf{thread\_init} to initialize
+the TCB pool. As shown in Figure \ref{fig:tcb_c}, the thread state in every TCB is marked
+dead, and the previous and next TCB indexes are set to an invalid index.
 
 \paragraph{Layer Interface PQueueIntro}
 
@@ -724,11 +731,6 @@ and one additional thread queue for the ready queue used by the thread scheduler
 We also introduce a list of getter and setter functions to manipulate the head and tail of the abstract
 queue as shown in Figure \ref{fig:tdq_c}.
 
-\begin{figure}
-	\lstinputlisting [language=C] {src/tdq.c}
-	\caption{Implementation of thread queue in C}
-	\label{fig:tdq_c}
-\end{figure}
 
 \paragraph{Layer Interface PQueueInit}
 
@@ -829,7 +831,7 @@ assembly instead of C, because it calls the function \textsf{kctxt\_switch} whic
 is implemented in assembly. The implementation shown in Figure \ref{fig:thread_s}
 is in the standard assembly source format that we present for the ease of readability,
 while the actual source code in Coq is shown in Figure \ref{fig:thread_sched_v}.
-Figure \ref{fig:thread_sched_v} also shows is specification.
+Figure \ref{fig:thread_sched_v} also shows its specification.
 From the assembly source code, we can find that the code is merely a straight line
 code with a list of function calls with proper arguments prepared. This is done in purpose to
 encapsulate all the complex loops and branching logic within verified functions implemented in C,
