@@ -17,7 +17,7 @@ uint pt_read_pde(uint proc_index, uint vaddr) {
 void pt_insert_aux(uint proc_index, uint vaddr, uint paddr, uint perm) {
     uint pdx_index = vaddr / (4096 * 1024);
     uint vaddrl = (vaddr / 4096) % 1024;
-    set_PTX(proc_index, pdx_index, vaddrl, paddr, perm);
+    set_PTE(proc_index, pdx_index, vaddrl, paddr, perm);
 }
 
 void pt_insert_pde(uint proc_index, uint vaddr, uint pi) {
@@ -28,7 +28,7 @@ void pt_insert_pde(uint proc_index, uint vaddr, uint pi) {
 void pt_rmv_aux(uint proc_index, uint vaddr) {
     uint pdx_index = vaddr / (4096 * 1024);
     uint vaddrl = (vaddr / 4096) % 1024;
-    rmv_PTX(proc_index, pdx_index, vaddrl);
+    rmv_PTE(proc_index, pdx_index, vaddrl);
 }
 
 void pt_rmv_pde(uint proc_index, uint vaddr) {

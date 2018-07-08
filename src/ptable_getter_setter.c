@@ -2,8 +2,8 @@ typedef unsigned int uint
 #define PT_PERM_UP 0
 #define PT_PERM_PTU 7
 
-void set_pt(uint index) {
-    set_cr3(PTPool[index]);
+void set_pt(uint proc_index) {
+    set_cr3(PTPool[proc_index]);
 }
 
 uint get_PDE(uint proc_index, uint pde_index) {

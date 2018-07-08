@@ -161,10 +161,17 @@ And given that this piece of code is verified on top of the layer interface MATI
 we can utilize the available invariants on that interface, i.e., the invariants on \textsf{MM}, as given.
 
 The verification is achieved piece by piece. First, we verify the first component where
-we compute and set the maximum number of available physical pages by feeding
+we compute and set the maximum number of available physical pages.
+Recall that our automation engine requires the following definitions for verifying a simple loop:
+a precondition expected to hold when we enter the loop, a postcondition expected to hold
+upon loop exit, a loop invariant, and a termination metric.
+Given these definitions, we need to prove that: the precondition implies the loop invariant, the loop invariant
+is preserved upon the look execution, and the postcondition is satisfied upon the loop exit, and the
+termination metric decreases each loop iteration based on the provided well-founded order.
+To verify the first loop computing the number of physical pages, we feed the
 following information into our automation engine.
 
-\begin{definition}[Pre-condition] 
+\begin{definition}[Precondition] 
 \begin{itemize}
 \item $\textsf{init} = \textsf{ikern} = \textsf{ihost} = \textsf{true}$,
 \item $i=\textsf{nps}=0$, and
@@ -172,7 +179,7 @@ following information into our automation engine.
 \end{itemize}
 \end{definition}
 
-\begin{definition}[Post-condition] 
+\begin{definition}[Postcondition] 
 \begin{itemize}
 \item $\textsf{nps}=\textsf{initial\_nps (MM adt) (MMSize adt)}$, and 
 \item $\textsf{adt}'=\textsf{adt}$.
@@ -207,11 +214,11 @@ the first loop in the function body.
 \end{figure}
 
 Next, we verify the main initialization loop. Here, we first verify the inner loop and use the derived lemma to verify the
-correctness of the main loop. Following are the list of information we provide to verify the inner loop.
+correctness of the main loop. The following is the list of information we provide to verify the inner loop.
 The auxiliary predicate \textsf{MM\_kern\_valid} (shown in Figure \ref{fig:mm_kern_valid_v}) indicates whether
 the corresponding physical page is userable or reserved by BIOS.
 
-\begin{definition}[Pre-condition] 
+\begin{definition}[Precondition] 
 \begin{itemize}
 \item $\textsf{init} = \textsf{ikern} = \textsf{ihost} = \textsf{true}$,
 \item $j=\textsf{flag}=\textsf{isnorm}=0$,
@@ -221,7 +228,7 @@ the corresponding physical page is userable or reserved by BIOS.
 \end{itemize}
 \end{definition}
 
-\begin{definition}[Post-condition] 
+\begin{definition}[Postcondition] 
 \begin{itemize}
 \item $\textsf{flag}=\textsf{isnorm}=1$ and $\textsf{MM\_kern\_valid (MM adt) i size}$\\OR\\
 $(\textsf{flag}=0$ or $(\textsf{flag}=1$ and $\textsf{isnorm=0}))$\\ and $\textbf{not}~\textsf{MM\_kern\_valid (MM adt) i (MMSize adt)}$
@@ -258,7 +265,7 @@ we derived for the loop computing \textsf{nps}. This could be used to verify the
 as our automation engine can utilize the lemma to discharge the proof goals for the inner while loop.
 Unlike inner loop, the inputs for the main loop are reasonably simple.
 
-\begin{definition}[Pre-condition] 
+\begin{definition}[Precondition] 
 \begin{itemize}
 \item $\textsf{init} = \textsf{ikern} = \textsf{ihost} = \textsf{true}$,
 \item $i=0$, 
@@ -267,7 +274,7 @@ Unlike inner loop, the inputs for the main loop are reasonably simple.
 \end{itemize}
 \end{definition}
 
-\begin{definition}[Post-condition] 
+\begin{definition}[Postcondition] 
 $\textsf{adt'}=\textsf{adt \{MM: initial\_AT (MM adt) (MMSize adt)\}}$.
 \end{definition}
 
@@ -425,20 +432,34 @@ and gets stuck if not, even though in the implementation, we do not perform this
 This can make sure that we always pass in valid arguments, without actually hindering the performance
 by doing the check at run time.
 
-\paragraph{Layer Interface MPTOp}
+The function \textsf{set\_pt} sets the proper root address of the page table to the
+\textsf{CR3} register. Note that \textsf{set\_pt} takes the process index as the argument
+instead of the actual page table root address for the corresponding process.
+This way, we can make sure that the client cannot set any invalid page table root by validating
+the process index (specification-only) and setting proper page table root.
 
-On top of the MPTIntro, we introduce a new layer interface and implement
-slightly higher level functions reading and writing the page table mappings that directly
-take the virtual address as argument (see Figure \ref{fig:ptable_op_c}).
+The function \textsf{get\_PDE} returns the corresponding page directory entry,
+the function \textsf{get\_PDEU} sets the page directory index to the
+provided physical page index and permission for the user processes, 
+the function \textsf{set\_PDE} points the page directory entry to the
+identity map in \textsf{IDPMap}, and the function \textsf{rmv\_PDE}
+clears out the page directory entry. Recall that we set the entire low memory
+to an identity map in every page table, and we statically allocate an identically
+mapped page table entry, and map each page directory to the corresponding
+entry in \textsf{IDPMap} via \textsf{set\_PDE} for the low memory portion.
 
-In addition, we also introduce the function to initialize the \textsf{IDPMap} as a identity map,
-with the implementation shown in Figure \ref{fig:idpde_init_c}, and the specification shown
-in Figure \ref{fig:idpde_init_v}.
+Last, the function \textsf{get\_PTE}, \textsf{set\_PTE}, and \textsf{rmv\_PTE}
+are used to read, write, and clear the page table entries, respectively, while
+the function \textsf{set\_IDPTE} is to map each page table entry in \textsf{IDPMap}
+as an identity map with a proper permission.
 
-Despite the nested while loop, the verification of the \textsf{idpde\_init} is reasonably
-intuitive and can be performed similarly to other functions with loops as before.
-As in this layer, our initialization method also initializes the \textsf{IDPMap}, we can
-introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
+At this layer interface, a client program has arbitrary access to the page table structure.
+Thus, we cannot yet introduce any reasonable invariant as, e.g., one can read a page table
+entry with an invalid page directory entry.
+
+The verification of these getter and setter are trivial and can be achieved with a single tactic call,
+similarly to the example proof shown in Figure \ref{fig:cb_init_proof}.
+
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/ptableop.c}
@@ -458,6 +479,24 @@ introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
 	\caption{The specification for IDPDE in Coq}
 	\label{fig:idpde_init_v}
 \end{figure}
+
+\paragraph{Layer Interface MPTOp}
+
+On top of the MPTIntro, we introduce a new layer interface and implement
+slightly higher level functions reading and writing the page table mappings that directly
+take the virtual address as argument (see Figure \ref{fig:ptable_op_c}).
+In addition, the function \textsf{pt\_read} also checks that the corresponding page
+directory entry is valid, and returns zero otherwise.
+
+At MPTOp, we also introduce the function to initialize the \textsf{IDPMap} as a identity map.
+It's implementation is shown in Figure \ref{fig:idpde_init_c}, and the specification is shown
+in Figure \ref{fig:idpde_init_v}.
+
+Despite the nested while loop, the verification of the \textsf{idpde\_init} is reasonably
+intuitive and can be performed similarly to other functions with loops as before.
+As in this layer, our initialization method also initializes the \textsf{IDPMap}, we can
+introduce a layer invariant on \textsf{IDPMap}, stating it is an identity map.
+
 
 \paragraph{Layer Interface MPTCommon}
 
