@@ -1,6 +1,6 @@
 Formal verification is the only known way of building bug-free or hacker-proof
 programs. However, due to its prohibitive associated costs, formal verification
-has been rarely considered as an option in building robust large-scale system software.
+has rarely been considered as an option in building robust large-scale system software.
 Practical system software normally consists of highly correlated interdependent subsystems,
 with complex invariants that need to be globally maintained. To reason about the correctness of
 a program, we not only need to show that the program in consideration
@@ -24,12 +24,12 @@ at the logical level. The engine also contains a novel way of representing devic
 simulation-based approach for turning the low-level interrupt model into an equivalent abstract model which is
 suitable for reasoning about interruptible code. Furthermore, the engine provides a new way of representing
 concurrently shared states into a sequence of external I/O events and allows us to verify 
-concurrent programs as if they were sequential and provide a separate logical framework to effectively
+concurrent programs as if they were sequential and provided a separate logical framework to effectively
 reason about interleaved executions. This very modular design allows us to be able to reason about each
 aspect of the system separately, and while each of the reasoning tasks looks unbelievably simple, we could combine
 all the proofs to obtain proofs of properties about complex system software.
-An OS kernel is a very typical example of complex low-level system software with highly interdependent modules.
-To illustrate the effectiveness of our approach, using all the tools, we have developed fully verified feature-rich
+An OS kernel is a typical example of complex low-level system software with highly interdependent modules.
+To illustrate the effectiveness of our approach, using all the tools, we have developed a fully verified feature-rich
 operating system kernel with machine-checkable proof in the Coq proof assistant.
 
 

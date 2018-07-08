@@ -12,19 +12,19 @@ We first present the lowest level machine model, the layer interface MBoot.
 \end{figure}
 
 The interface MBoot is the lowest level layer interface in mCertiKOS, which is
-used to model the behaviors of hardware and the unverified boot loader.
-The abstract states of the MBoot interface is shown in Fig.~\ref{fig:ref:mboot_rdata}.
+used to model the behaviors of hardware and the unverified bootloader.
+The abstract states of the MBoot interface are shown in Fig.~\ref{fig:ref:mboot_rdata}.
 
-On an x86-based systems, the BIOS reports the physical memory information
+On an x86-based system, the BIOS reports the physical memory information
 through the \textsf{e820} memory map to allow the operating system to figure out
 which memory address ranges are usable and which are reserved for use by the BIOS.
 The \textsf{e820} table consists of a sequence of triples $(s, l, p)$, indicating
 the starting address $s$, the length $l$ of the region from the address $s$, and
 the permission $p$ (whether the region is reserved by BIOS or not). This triple
 is represented by the abstract type \textsf{MMInfo} in Fig.~\ref{fig:ref:mboot_rdata}.
-Since this data is initialized by the boot loader, the
+Since this data is initialized by the bootloader, the
 \textsf{MMInfo} in Fig.~\ref{fig:ref:mboot_rdata} also contains the default case
-\textsf{MMUndef} to indicate the case when it is not yet initialized by the boot loader.
+\textsf{MMUndef} to indicate the case when it is not yet initialized by the bootloader.
 The whole \textsf{e820} table is represented by \textsf{MM} as a partial map
 from integer keys to \textsf{MMInfo}. Since it is a partial map, the number of
 \textsf{MMInfo} entries is defined separately as \textsf{MMSize} as shown in
@@ -32,7 +32,7 @@ Fig.~\ref{fig:ref:mboot_rdata}.
 
 The MBoot interface also defines a list of primitives to operate on the abstract
 memory map. The primitives \textsf{get\_mms}, \textsf{get\_mml}, and \textsf{is\_usable}
-receives an integer $i$ as parameter and returns appropriate field in \textsf{MM}
+receives an integer $i$ as the parameter and returns appropriate field in \textsf{MM}
 with the key $i$, while the primitive \textsf{get\_size} returns the number of
 entries in the table.
 
@@ -47,18 +47,18 @@ Appropriate primitives are also defined in MBoot to set these states.
 The special flags \textsf{ikern} and \textsf{ihost} represent whether the execution
 is currently in the kernel and host mode, respectively. They are set to \textsf{true}
 when the execution traps into the kernel or host, and are set to \textsf{false} when
-the execution returns back to user or the guest.
+the execution returns back to the user or the guest.
 
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/bootloader.v}
-	\caption{The specification of \texttt{boot loader} in Coq}
+	\caption{The specification of \texttt{bootloader} in Coq}
 	\label{fig:bootloader_v}
 \end{figure}
 
 The special flag \textsf{init} represents whether the kernel data is fully initialized.
 Verification of initialization code has always been a big challenge because the system
-data would only satisfy global invariants when they are properly initialized by these code.
+data would only satisfy global invariants when they are properly initialized by these codes.
 In other words, the invariants are not satisfied when these initialization code run but
 are established through these initialization process. Existing verification approach
 has assumed that all the system data are already properly initialized, thus leaving
@@ -67,10 +67,10 @@ all the initialization code unverified \cite{klein2009sel4,klein14}.
 To tackle this challenge, we build the initialization stack into a hierarchical structure
 instead of the standard flat structure, i.e., each initialization function always first calls
 the previous initialization function, then initializes its underlying data. At the bottom layer,
-we have the specification of the boot loader, which initializes the \textsf{MM} and \textsf{MMSize}.
+we have the specification of the bootloader, which initializes the \textsf{MM} and \textsf{MMSize}.
 Like any other initialization functions, it requires the \textsf{init} to be \textsf{false} at entry, and turns
 it to \textsf{true} upon exit. Then all invariants relying on initialized states require that the \textsf{init}
-being \textsf{true}, i.e., the the data are properly initialized by corresponding initialization function.
+being \textsf{true}, i.e., the data are properly initialized by corresponding initialization function.
 For example, we have following invariant on the \textsf{MM}.
 
 \begin{invariant}[MM valid]
@@ -78,7 +78,7 @@ If \textsf{init} is \textsf{true}, for any index $i$ such that $0\le i<MMSize$, 
 triple of $(s, l, p)$ where $s >= 0$, $l > 0$, and $s + l < Int.max\_unsigned$.
 \end{invariant}
 
-Since the MM table and its size comes from BIOS, the invariant is treated as top level
+Since the MM table and its size comes from BIOS, the invariant is treated as the top-level
 assumption of our entire proof on the correctness of the BIOS. 
 
 Each layer interface has exactly one initialization primitive, e.g., either just gets passed through
@@ -87,19 +87,19 @@ interface, and since this primitive sets \textsf{init}
 to \textsf{true} from \textsf{false}, this primitive needs to initialize all the proper abstract states
 such that the initialized states satisfy all the invariants in this layer interface.
 
-Figure \ref{fig:bootloader_v} presents our Coq specification for the boot loader primitive.
+Figure \ref{fig:bootloader_v} presents our Coq specification for the bootloader primitive.
 Here, the notation ``\textsf{adt \{attr: val\}}'' indicates a new abstract state where the attribute
 \textsf{attr} in \textsf{adt} is replaced by the new value \textsf{val} and otherwise the same
 as original \textsf{adt}.
 The specification is written as a function which takes the abstract data type \textsf{RData},
 and returns a new abstract state or \textsf{None} representing the execution gets stuck.
-Our top level specification guarantees that the system execution never gets stuck.
+Our top-level specification guarantees that the system execution never gets stuck.
 But at this level, the primitive could get stuck when this primitive is misused, e.g., when it is called twice.
 
 
 \section{Physical Memory Management}
 
-In physical memory management module, we build a physical page allocation map to maintain the
+In the physical memory management module, we build a physical page allocation map to maintain the
 allocation status of physical pages.
 The top section in Figure \ref{fig:at_v} shows
 the C implementation of the allocation table, where each allocation entry contains the field \textsf{isnorm}
@@ -111,7 +111,7 @@ and the field \textsf{allocated} to indicate whether the page is already allocat
 We would like to initialize the allocation information map with the information from the \textsf{MM},
 and provide an allocation method to allow the kernel to allocate a physical page.
 Before we implement and verify all these functions, following our mantra, we would like to perform
-these reasoning completely at the logical level, without worrying about isolation.
+this reasoning completely at the logical level, without worrying about isolation.
 As shown in the bottom section of Figure \ref{fig:at_v}, we introduce a new layer interface MATIntro
 to abstract the concrete in memory allocation table into a logical map. Here $ZMap.t$ is a partial
 map implementation which takes a value type and returns a partial map from integers to the values of given type.
@@ -145,17 +145,17 @@ to \textsf{false} in addition.
 
 Next, we would like to initialize this logical allocation table using the information provided
 in \textsf{MM}. The concrete C implementation is shown in Figure \ref{fig:mem_init_c}.
-Note that as we discussed earlier, first thing it does is to call the lower level initialization
+Note that as we discussed earlier, the first thing it does is to call the lower level initialization
 function (boot\_loader in this case) before it performs the actual initialization of its data.
 As shown in the figure, it contains two main components. It first computes how much memory
 do we have on this machine and sets \textsf{nps} field properly by calling the \texttt{set\_nps} primitive.
-Next, it sets proper allocation state for every page based on the information available in \textsf{MM}.
+Next, it sets a proper allocation state for every page based on the information available in \textsf{MM}.
 The corresponding Coq specification is shown in Figure \ref{fig:mem_init_v}. 
 Comparing to the specification of \texttt{boot\_loader}, the difference is that it also initializes
 \textsf{AT} and \textsf{nps} fields in the abstract states to their expected logical values.
 
 The verification of this initialization function is not trivial. But fortunately, our reasoning
-is now completely at logical level and there are no in-memory data involved, thus no need
+is now completely at the logical level and there are no in-memory data involved, thus no need
 to reason about isolation as they are guaranteed by construction.
 And given that this piece of code is verified on top of the layer interface MATIntro,
 we can utilize the available invariants on that interface, i.e., the invariants on \textsf{MM}, as given.
@@ -203,13 +203,13 @@ $\textsf{MMSize adt}-i$
 	\label{fig:nps_loop_v}
 \end{figure}
 
-With these information, we can utilize the automation engine to derive the main lemma shown in Figure \ref{fig:nps_loop_v}.
+With this information, we can utilize the automation engine to derive the main lemma shown in Figure \ref{fig:nps_loop_v}.
 When we verify the main function body, this lemma will be automatically applied by the automation engine to prove
 the first loop in the function body.
 
 \begin{figure}
 	\lstinputlisting [language=Coq] {src/mm_kern_valid.v}
-	\caption{The predicate indicating whether the page is reserved or userable}
+	\caption{The predicate indicating whether the page is reserved or usable}
 	\label{fig:mm_kern_valid_v}
 \end{figure}
 
@@ -257,13 +257,13 @@ $s' > i * PAGESIZE$ or $l' + s' < (i + 1) * PAGESIZE$.
 $\textsf{MMSize adt}-j$
 \end{definition}
 
-We could observe that the inputs for the inner loop is reasonably complicated. It is because
-this inner loop is just an auxiliary loop to assist in the main goal of initializing allocation table
+We could observe that the inputs for the inner loop are reasonably complicated. It is because
+this inner loop is just an auxiliary loop to assist in the main goal of initializing the allocation table
 in the outer loop, thus may not have a simple meaningful interpretation by itself.
 With automation engine, we could derive a correctness lemma for the inner loop similar to the one
 we derived for the loop computing \textsf{nps}. This could be used to verify the main outer loop,
 as our automation engine can utilize the lemma to discharge the proof goals for the inner while loop.
-Unlike inner loop, the inputs for the main loop are reasonably simple.
+Unlike the inner loop, the inputs for the main loop are reasonably simple.
 
 \begin{definition}[Precondition] 
 \begin{itemize}
@@ -299,12 +299,12 @@ $\textsf{nps}-i$
 With the correctness lemma of the outer loop, we are able to prove the main correctness theorem for
 the code \texttt{mem\_init} shown in Figure \ref{fig:mem_init_correct_v}.
 
-In this MATInit layer interface, we also introduce following invariant for abstract \textsf{AT}.
+In this MATInit layer interface, we also introduce the following invariant for abstract \textsf{AT}.
 
 \begin{invariant}[valid AT] If \textsf{init} is \textsf{true}, then
 \begin{itemize}
 \item every page below \textsf{MEMLOW} or above \textsf{MEMHIGH} is marked as an unallocated kernel-reserved page, and
-\item any other page is either reserved by BIOS, or marked as userable.
+\item any other page is either reserved by BIOS or marked as usable.
 \end{itemize}
 \end{invariant}
 
@@ -324,7 +324,7 @@ In this layer, we introduce the main physical page allocation function \textsf{p
 As shown in Figure \ref{fig:palloc_c}, the function seeks for the first unused physical page,
 marks it as used, and returns the index of the page found.
 The specification shown in Figure \ref{fig:palloc_v} is similar, except it manipulates
-the abstract state \textsf{AT} instead of the concrete in memory data.
+the abstract state \textsf{AT} instead of the concrete in-memory data.
 
 \begin{figure}
 	\lstinputlisting [language=C] {src/palloc.c}
@@ -340,7 +340,7 @@ the abstract state \textsf{AT} instead of the concrete in memory data.
 
 The verification of this function is reasonably straightforward. We first verify that
 the while loop indeed terminates with the index to the first unused physical page when such page is available.
-To prove that, we need following two lemmas.
+To prove that, we need the following two lemmas.
 
 \begin{lemma}[Termination] There exists an index $K$ such that either $K=NPS$, or $0<K<NPS$ and the permission of the $K'th$ entry
 in AT is normal, and permission of any other entry prior to $K$ is not normal.
@@ -366,16 +366,16 @@ the automation engine to verify the while loop, and further the entire $palloc$ 
 
 On top of the physical memory management layers, we introduce the
 virtual memory management layers.
-We implement the two level page table structure, where the second level
+We implement the two-level page table structure, where the second level
 page table entries are dynamically allocated when the user accesses an unallocated virtual memory.
-Page table 0 is reserved for kernel page table and the whole page table is set to an identity map.
+Page table 0 is reserved for the kernel page table and the whole page table is set to an identity map.
 For every process's page table, we map the low memory as an identity map with kernel only permission,
 so that when each process traps into the kernel, we no longer need to switch to the kernel page table, 
 but can still access kernel data natively via memory access.
 
 The top section of Figure \ref{fig:ptable_v} shows the implementation of the two level page table.
 The \textsf{PTPool} is a list of page directory entries for each of the process and the kernel (page number 0).
-Since we map many portion of various page tables to identity maps, we statically allocate one page table entry
+Since we map many portions of various page tables to identity maps, we statically allocate one-page table entry
 structure (\textsf{IDPMap} in the Figure), and simply map its address to every page directory entry where
 we would like to set to the identity mapping.
 The bottom section of the Figure shows the abstract logical representation of the page table structure.
@@ -415,11 +415,11 @@ virtual memory management code modules.
 \end{figure}
 
 To follow our mantra, we first perform data abstraction to abstract the in-memory
-page table structure into the logical page table map shown in Figure \ref{fig:ptable_v},
+page table structure into the logical page table map shown in Figure \ref{fig:ptable_v}
 and introduce the getter and setter methods.
 Implementations of those functions are shown in Figure \ref{fig:ptable_getter_setter_c}.
 Note that in CompCert memory model, integers and pointers are two different incompatible
-types and one cannot be casted to the other. Thus, in order to add the permission bits
+types and one cannot be cast to the other. Thus, in order to add the permission bits
 to the end of the page directory entry address, we have to rely on the pointer arithmetic.
 Since the permissions are not always the multiple of four, we implement the \textsf{PTPool}
 as arrays of \textsf{char} so that we can add arbitrary permissions to the addresses via
@@ -429,14 +429,14 @@ Figure \ref{fig:ptable_getter_setter_v} and \ref{fig:ptable_getter_setter2_v} sh
 specifications of the corresponding functions that manipulating the abstract page tables mappings.
 Note that the specification also validates that the arguments passed in are within the proper range
 and gets stuck if not, even though in the implementation, we do not perform this check.
-This can make sure that we always pass in valid arguments, without actually hindering the performance
-by doing the check at run time.
+This can make sure that we always pass invalid arguments, without actually hindering the performance
+by doing the check at runtime.
 
 The function \textsf{set\_pt} sets the proper root address of the page table to the
 \textsf{CR3} register. Note that \textsf{set\_pt} takes the process index as the argument
 instead of the actual page table root address for the corresponding process.
 This way, we can make sure that the client cannot set any invalid page table root by validating
-the process index (specification-only) and setting proper page table root.
+the process index (specification-only) and setting the proper page table root.
 
 The function \textsf{get\_PDE} returns the corresponding page directory entry,
 the function \textsf{get\_PDEU} sets the page directory index to the
@@ -445,7 +445,7 @@ the function \textsf{set\_PDE} points the page directory entry to the
 identity map in \textsf{IDPMap}, and the function \textsf{rmv\_PDE}
 clears out the page directory entry. Recall that we set the entire low memory
 to an identity map in every page table, and we statically allocate an identically
-mapped page table entry, and map each page directory to the corresponding
+mapped page table entry and map each page directory to the corresponding
 entry in \textsf{IDPMap} via \textsf{set\_PDE} for the low memory portion.
 
 Last, the function \textsf{get\_PTE}, \textsf{set\_PTE}, and \textsf{rmv\_PTE}
@@ -459,7 +459,7 @@ Thus, we cannot yet introduce any reasonable invariant as, e.g., one can read a 
 entry with an invalid page directory entry.
 }
 
-The verification of these getter and setter are trivial and can be achieved with a single tactic call,
+The verification of these getters and setters are trivial and can be achieved with a single tactic call,
 similarly to the example proof shown in Figure \ref{fig:cb_init_proof}.
 
 
@@ -499,7 +499,7 @@ entry without a valid page directory entry being set.
 At MPTOp, we also introduce the function to initialize the \textsf{IDPMap} as an identity map.
 As shown in Figure c, \textsf{idpde\_init} first calls into the lower layer
 initialization primitive \textsf{mem\_init}, then initializes each page table entry to an identity
-map with proper permission (kernel-only for low memory, and user accessible for high memory).
+map with proper permission (kernel-only for low memory, and user-accessible for high memory).
 The specification of Figure \ref{fig:idpde_init_c} is shown in Figure \ref{fig:idpde_init_v},
 and one can observe that it is an extension of the specification of \textsf{mem\_init}
 such that it also initializes the \textsf{idpde} field in the abstract state.
@@ -525,7 +525,7 @@ intuitive and can be performed similarly to other functions with loops as before
 	\label{fig:ptablecomm_v}
 \end{figure}
 
-In this layer interface, we further introduce a higher level functions to allocate
+In this layer interface, we further introduce higher-level functions to allocate
 and free the first level page directory entries.
 As shown in Figure \ref{fig:ptablecomm_c}, the function \textsf{pt\_alloc\_pde}
 first dynamically allocates a new physical page for page table entries and if the
@@ -537,7 +537,7 @@ frees the page for corresponding page table entries.
 
 In addition, the initialization function of page tables is added to initialize each page table
 for every process. As shown in Figure \ref{fig:ptablecomm_c}, the function
-\textsf{pt\_init\_comm} goes through every page table, and marks the page directory
+\textsf{pt\_init\_comm} goes through every page table and marks the page directory
 entries in the low memory section as identity map with kernel-only permission, while
 it marks the rest of page directories as unallocated.
 
@@ -545,19 +545,19 @@ The specifications of the functions are presented in Figure \ref{fig:ptablecomm_
 For example, the specification of \textsf{pt\_alloc\_pde} simply finds the first free
 page and maps that with the corresponding page directory entry. Note that, we could
 add additional validations into the specifications that do not exist in the actual code.
-When these validation fail, the specification gets stuck. As in the end, we prove that
-no top level system call could get stuck on any potential user input, these validations
-are the expectations of usage of these primitive in the higher layers.
-For example, the specifications of \textsf{pt\_alloc\_pde}
+When these validations fail, the specification gets stuck. As in the end, we prove that
+no top-level system call could get stuck on any potential user input, the validations
+are the expected usage of these primitives in the higher layers.
+For example, the specification of \textsf{pt\_alloc\_pde}
 also validates that these primitives are not called to modify the page table of currently
 running thread, and the corresponding page directory entry was not set before.
-Similarly the specification of \textsf{pt\_free\_pde} validates that the primitive is not
-called on running thread, and the page directory we are trying to remove was properly
+Similarly, the specification of \textsf{pt\_free\_pde} validates that the primitive is not
+called on the running thread, and the page directory we are trying to remove was properly
 set before. The specification of \textsf{pt\_init\_comm} adds upon the specification
 of \textsf{idpde\_init} the initialization of \textsf{ptpool} field in the abstract state.
 
-
-The verification of these method are similar to the ones presented before containing the loops, and are not detailed here.
+The verification of these methods is similar to the ones presented before
+containing the loops and are not detailed here.
 
 \paragraph{Layer Interface MPTKern}
 
@@ -632,7 +632,7 @@ At this point, we now introduce the main invariants for the page table structure
 \paragraph{Layer Interface MPTBit}
 
 Now that we have the code to initialize and manipulate the page table structure, in this layer interface,
-we introduce a bit map of size \textsf{NUM\_PROC}, to record whether each process is already spawn or
+we introduce a bitmap of size \textsf{NUM\_PROC}, to record whether each process is already spawned or
 free. We introduce a getter function \textsf{is\_used}, and a setter \textsf{set\_bit} in this layer as well to
 read and write to the new bitmap.
 
@@ -685,10 +685,10 @@ In addition, we also introduce the \textsf{kctx\_switch} function implemented in
 Next, the layer interface PKContextNew introduces one new primitive \textsf{kctxt\_new}, which finds the next
 available process, and sets the stack pointer and the function entry pointer properly in its kernel context.
 As shown in Figure \ref{fig:kctxtnew_c}, we statically allocate one page for each potential process for its kernel
-stack, and sets the stack pointer of each new process to be the top of corresponding stack page.
+stack and sets the stack pointer of each new process to be the top of corresponding stack page.
 The $-4$ subtracted from the stack top is the typical safety enhancement to make sure we are less likely to
 exceed the stack boundary when we manipulate the stack, and it is not really necessary here as our kernel
-is formally verified for absence of stack overflow.
+is formally verified for the absence of stack overflow.
 The abstract specification of \textsf{kctxt\_new} is shown in Figure \ref{fig:kctxtnew_v}.
 
 
@@ -724,9 +724,9 @@ dead, and the previous and next TCB indexes are set to an invalid index.
 \paragraph{Layer Interface PQueueIntro}
 
 PQueueIntro introduces the abstract thread queues. As shown in Figure \ref{fig:tdq_c}, a thread queue
-is represented simply as pair of indexes in the static TCB pool representing the head and tail TCBs.
+is represented simply as a pair of indexes in the static TCB pool representing the head and tail TCBs.
 Here, the \textsf{num\_chan} represents the number of IPC channels we support in the kernel.
-We allocate one thread sleeping queue per IPC channel for the threads waiting on that channel,
+We allocate one thread sleeping queue per IPC channel for the threads waiting on that channel
 and one additional thread queue for the ready queue used by the thread scheduler.
 We also introduce a list of getter and setter functions to manipulate the head and tail of the abstract
 queue as shown in Figure \ref{fig:tdq_c}.
@@ -755,12 +755,12 @@ A valid abstract queue is simply a list of indexes of TCBs in the abstract TCB p
 Similar to the techniques presented in Chapter \ref{chapter:framework}, before this layer interface
 PAbQueue, we represent the abstract TCB and the queue in a way very similar to their implementations in C, i.e.,
 using the list and indexes, and all the getter, setter, enqueue, and dequeue operations are all specified using
-this intermediate abstract representations. The benefit is that this makes the verification of the TCB and queue
+this intermediate abstract representation. The benefit is that this makes the verification of the TCB and queue
 manipulating functions easier as their specifications and implementations are relatively close.
 Once this is achieved, in this layer interface PAbQueue, we turn the abstract TCB and queue representation
-into the ultimate logical one shown in Figure \ref{fig:abq_v}, and turn all the specifications to use this representation.
-Then we verify that the layer interface PQueueInit and PAbQueue are contextual equivalent, without involving any
-reasoning on the actual code, completely at logical level.
+into the ultimate logical one shown in Figure \ref{fig:abq_v} and turn all the specifications to use this representation.
+Then we verify that the layer interface PQueueInit and PAbQueue are contextually equivalent, without involving any
+reasoning on the actual code, completely at the logical level.
 The specifications of \textsf{enqueue} and \textsf{dequeue} using the more abstract representations are
 shown in Figure \ref{fig:abq_v}. Here, the specifications are much simpler and readable comparing to their
 specifications in the layer interface PQueueInit, as the queue is presented as a simple list with less number of
@@ -772,7 +772,7 @@ indirection.
 	\label{fig:abq_v}
 \end{figure}
 
-In this layer, we also introduce following set of layer invariants. Note that we do not need to include unnecessary
+In this layer, we also introduce the following set of layer invariants. Note that we do not need to include unnecessary
 invariants in PQueueInit because they would have been much more complex using the more concrete
 representations and we would not be able to prove the contextual refinement if PQueueInit does not satisfy
 the invariants corresponding to the ones we added in PAbQueue layer interface here.
@@ -786,7 +786,7 @@ Every index $i$ in any queue has range $0\le i < \textsf{num\_proc}$.
 \end{invariant}
 
 \begin{invariant}[Dead TCB Not In Queue]
-The index of any unallocated process is not in any queue, i.e., $b=-1$ in corresponding TCB.
+The index of any unallocated process is not in any queue, i.e., $b=-1$ in the corresponding TCB.
 \end{invariant}
 
 \begin{invariant}[At Most One Queue]
@@ -828,13 +828,13 @@ In addition to the primitives we introduced above, PThreadSched also includes an
 scheduler related primitive \textsf{thread\_sched}.
 As shown in Figure \ref{fig:thread_s}, \textsf{thread\_sched} is implemented in
 assembly instead of C, because it calls the function \textsf{kctxt\_switch} which
-is implemented in assembly. The implementation shown in Figure \ref{fig:thread_s}
+is implemented in the assembly. The implementation shown in Figure \ref{fig:thread_s}
 is in the standard assembly source format that we present for the ease of readability,
 while the actual source code in Coq is shown in Figure \ref{fig:thread_sched_v}.
 Figure \ref{fig:thread_sched_v} also shows its specification.
 From the assembly source code, we can find that the code is merely a straight line
 code with a list of function calls with proper arguments prepared. This is done in purpose to
-encapsulate all the complex loops and branching logic within verified functions implemented in C,
+encapsulate all the complex loops and branching logic within verified functions implemented in C
 and make the actual function implemented in assembly simple. Thus, even though we do not
 have as mature automation support as we have in verifying C code, the verification of \textsf{thread\_sched}
 assembly implementation against its specification in Figure \ref{fig:thread_sched_v} is accessible.
@@ -870,7 +870,7 @@ its specification is shown in Figure \ref{fig:scheduler_v}.
 	\label{fig:scheduler_v}
 \end{figure}
 
-At PThread layer, we have full set of thread scheduling primitives, and we no longer expose the low
+At PThread layer, we have the full set of thread scheduling primitives, and we no longer expose the low
 level primitives manipulating thread queues directly. Thus, we now introduce a stronger invariant
 to our abstract TCB as shown below.
 
@@ -885,7 +885,7 @@ $0\le b < \textsf{num\_chan}$ when $s=\textsf{SLEEP}$, and $b=\textsf{num\_chan}
 We have implemented two additional layer interface PIPCIntro and PIPC on top of the PThread layer for a single-copy
 synchronous inter-process communication (IPC) protocol. 
 Every IPC message contains the virtual address of the sender message buffer, and the number of bytes sent.
-The layer interface PIPCIntro abstracts the IPC message into abstract buffer and introduces the getter and setter primitives.
+The layer interface PIPCIntro abstracts the IPC message into an abstract buffer and introduces the getter and setter primitives.
 The layer PIPC introduces the main \textsf{sync\_sendto\_chan} and \textsf{sync\_receive\_chan} primitives to send and receive
 messages between processes synchronously. 
 
@@ -910,9 +910,9 @@ On top of PProc, we implement the hardware-assisted virtualization technology In
 
 \paragraph{Layer Interface VEPTIntro}
 
-In VEPTIntro, we introduce the four level Extended Page Table (EPT). The concrete implementation in C
+In VEPTIntro, we introduce the four-level Extended Page Table (EPT). The concrete implementation in C
 and the corresponding abstract logical representation is shown in Figure \ref{fig:ept_v}.
-This is similar to the two level in-kernel page table structure except it has two additional levels.
+This is similar to the two-level in-kernel page table structure except it has two additional levels.
 The corresponding getter and setter functions introduced are shown in Figure \ref{fig:ept_c}.
 
 \begin{figure}
@@ -952,7 +952,7 @@ These two layer interfaces are used to abstract and properly initialize the Virt
 
 \paragraph{Layer Interface VVMXIntro and VVMXInit}
 
-In these two layers, we introduce the Virtual Machine Extension meta data (VMX), and relevant primitives to initialize
+In these two layers, we introduce the Virtual Machine Extension metadata (VMX), and relevant primitives to initialize
 and manipulate VMX. We also implement two \textsf{vm\_enter} and \textsf{vm\_exit} primitives to enter and exit
 from the host mode.
 
@@ -963,7 +963,7 @@ from the host mode.
 In TTrapArg, we implement a list of primitives to retrieve the system call arguments and return values.
 We use the convention such that we set the system call number to the register \textsf{EAX} when we trap into the kernel,
 and set the system call arguments using the registers \textsf{EBX}, \textsf{ECX}, \textsf{EDX}, \textsf{ESI}, and \textsf{EDI}
-in order. When we return back to user from the system call handler, we set the error number in the register \textsf{EAX},
+in order. When we return back to the user from the system call handler, we set the error number in the register \textsf{EAX},
 and the return values in the registers \textsf{EBX}, \textsf{ECX}, \textsf{EDX}, \textsf{ESI}, and \textsf{EDI}
 in order.
 
@@ -980,5 +980,5 @@ of the kernel).
 \paragraph{Layer Interface TDispatch}
 
 Finally, we introduce the system call dispatcher that retrieves the system call number from the register
-\textsf{EAX} in the user context, and calls into the corresponding system call handler defined in the TTrap layer.
+\textsf{EAX} in the user context and calls into the corresponding system call handler defined in the TTrap layer.
 
