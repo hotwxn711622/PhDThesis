@@ -141,23 +141,17 @@ asynchronous edition and compilation.
 
 \section{Conclusion}
 In this dissertation, I have presented a novel, compositional, and powerful
-automation engine for verifying complex system software.
-Unlike traditional verification approaches for verifying C programs mixing 
-the proof of isolation and preservation of invariants into the reasoning of 
-functional correctness, our automation engine takes the isolation and 
-invariants as given, and provide separate mechanisms to guarantee 
-isolation and prove the invariants.
-The formalization of interrupts follows the
-same mantra and turns the realistic hardware interrupt model into
-a contextually equivalent abstract model of interrupts,
-such that our automation engine can effectively reason about interruptible
-code independently from the interleaved executions from the interrupts.
-The extended support on fine-grained concurrency allows us
-to reason about each local thread with fine-grained locking separately through
-our automation engine,
-and formally link the local proofs to derive the global properties of
-the entire system. 
-To illustrate the effectiveness of our approach, using all the tools, we 
-have developed fully verified feature-rich operating system kernel 
+automation engine that is particularly suitable for verifying complex system software.
+The automation engine clearly separates the code verification from the proof of invariants
+and memory isolation through contextual refinement.
+Furthermore, the engine provides a new way of verifying device drivers
+and building an abstract interruptible model that is suitable for verifying
+interruptible code. 
+The extended support on concurrency allows us to effectively
+reason about various concurrent system modules with fine-grained locking.
+In the end, the automation engine provides tactic libraries for verifying
+all C programs above against their specifications semi-automatically. 
+To illustrate the effectiveness of the automation engine, we 
+have developed a fully verified feature-rich operating system kernel 
 with machine-checkable proof in the Coq proof assistant.
 
