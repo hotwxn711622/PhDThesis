@@ -10,14 +10,30 @@ costly than the development of the software itself~\cite{klein2009sel4,klein14}.
 This dissertation aims to provide a very effective and accessible way of proving practical low-level
 system software. To achieve this, we need to tackle several main challenges.
 
-First, complex system software consists of highly interdependent subsystems, which makes it
-difficult to reason about each small component locally. Separation logic is one of the most commonly
+First, complex system software consists of highly interdependent subsystems.
+The modular reasoning of each small component locally is non-trivial.
+Separation logic is one of the most commonly
 used tools to reason about the isolation of data structures in the memory
-\cite{appel07:tphols,Tuch:2009}. Yet it mixes the main functional correctness logic with the proof
-of isolation, thus provides overhead and hinders opportunities for automation.
+\cite{appel07:tphols,Tuch:2009}. 
+\ignore{
+On the other hand, it mixes the main functional
+correctness logic with the proof
+of memory isolation, thus lacks in modularity and hinders opportunities for automation.
+}
+As a success story,
+the seL4 team \cite{klein2009sel4} has developed the first
+formally verified practical microkernel.
+This work is impressive in that all the proofs were done
+in a modern mechanized proof assistant.
+On the other hand, it took them 11 person-years to verify 7,500 lines of
+C code, still leaving 1,300 lines of C and 500 lines of assembly code
+unverified.
 
-Next, the majority of the traditional verification efforts on proving system software go into proving
-invariant preservation properties~\cite{klein14}. Invariants are known to be very expensive
+
+Next, the majority of the traditional verification efforts on proving system software go into proving invariant preservation properties.
+For example, about 80\% of the properties proved in seL4 are related
+to preserving invariants \cite{klein14}. 
+Invariants are known to be very expensive
 because we not only need to prove that they are preserved by the local function in consideration,
 but also for the whole system, i.e., we need to show that the invariants are preserved at any
 moment of the whole system execution and cannot be accidentally broken by any functions
@@ -28,18 +44,43 @@ some of these functions temporarily violate the invariants while some re-establi
 the invariants later. Traditional verification approaches
 do not have a very effective and systematic way of tackling this challenge.
 
+Furthermore, 
+in practical system software, device drivers often form a very large component
+of the entire code base; 70\% of the Linux 2.4.1 kernel is
+device drivers~\cite{Chou:2001}.
+Such drivers are found
+to be the major source of crashes~\cite{Chou:2001,Ball:2006,Ganapathi:2006}.
+A major challenge in driver verification is the interrupt: a non-local
+jump to some driver code, triggered by a device. 
+Reasoning about interruptible code is
+particularly challenging since every fine-grained processor step
+could contain a non-local jump, and, upon return, the machine state
+could be substantially changed. Even worse, it is not clear how such
+reasoning should be done at the C level, which is completely
+interrupt-unaware. Existing work either assumes that interrupts are
+turned off inside the kernel~\cite{dscal15,verisoft07} or polls the
+interrupts at a few carefully chosen interrupt points~\cite{klein14}.
+
+Last not the least, many system software run on multiple CPUs with
+multiple concurrent threads.   
+The efficient reasoning of arbitrary concurrent executions among various
+interdependent components in a complex low-level system is considered
+intractable by some researchers~\cite{vontessin13,peters15,Chong:2016:RNW:3040225}. 
+
 \section{A Compositional Automation Engine} 
 
 In this thesis, we present a compositional, and powerful automation engine for effectively
-verifying complex system software. It is compositional because it is only used to reason
-about the functional correctness of C source programs, and takes the isolation
-and invariant properties as given.
+verifying complex system software. 
 We believe that the aforementioned challenges are not directly tied to the verification
 of the functional correctness itself, and we think the automation engine should focus solely
 on providing
 very strong automation support for proving the functional correctness of each system component,
-completely separate from the reasoning of isolation and invariants.
+completely separate from the reasoning of aforementioned challenges.
+We have developed a strong automation tactical libraries that solely focus on
+proving functional correctness, and provide a separate logical framework to handle
+memory isolation, invariant preservation, device interrupts, and concurrency.
 
+\paragraph{Memory Isolation}
 Instead of letting the main functional correctness proof handle the low-level
 isolation at the memory level,  we provide a systematic approach to abstract in-memory
 data structures into equivalent logical abstract states where the isolation is guaranteed.
@@ -60,6 +101,7 @@ low-level memory or isolation. Here, a new abstraction layer is developed where 
 functions are turned into logical primitives with their specifications, and new functions can be
 further verified on top of this new abstraction layer.
 
+\paragraph{Invariant Preservation}
 As we abstract in-memory data structures into logical abstract states, our system invariants
 are also expressed in terms of the abstract states. At every abstraction layer, we separately
 prove that all the primitives in this layer satisfy all the invariants in this layer. Given that these
@@ -77,71 +119,7 @@ The intermediate auxiliary primitives that are no longer needed are removed from
 layer to make sure the new invariants are preserved, or to avoid unnecessary invariants proof
 even when they do preserve the new invariants added.
 
-
 \ignore{
-An operating system (OS) kernel serves as the lowest level of any
-system software stack. The correctness of the OS kernel is the basis
-for that of the entire system.
-Despite being highly desired verification target, recent work
-has shown that the potential cost for verifying
-reasonably practical operating system could be 
-prohibitive~\cite{klein2009sel4,klein14}.
-
-To make formal verification of any of similar complex system software
-practical, we currently lack a unified language-based framework that allows us
-to formally express, untangle, and reason about the interdependent relationships
-among various components in complex system software like OS kernel.
-Formal verification, by nature, involves at least two types of languages.
-Low-level languages (like C or assembly) that are used to implement
-the actual system software, and rich specification languages used to specify
-various behaviors of the programs. The framework needs to support both
-kinds of languages in a unified system, and provide formal way of effectively
-reason about relationships between these two types of languages. In practice, many
-formal verification is done on separate models that are not directly connected to the
-actual running code. In addition, if the low-level language contains
-both C and assembly language, the framework should also provide certified compilation service
-that can compile the corresponding C code and its specification down to equivalent
-assembly version that can be formally linked together with the code that is written
-and verified directly at the assembly level. This way, we can guarantee that the proved
-properties can be certifiably transferred down to the actual assembly code running on the hardware.
-
-Furthermore, complex system software contains many different abstraction
-layers, where each layer implements its own functionality by calling into the
-interfaces of other lower level  layers, and expose a new abstract
-interface to outside. The clients of this library only ever look at the
-interface and their specification (normally written in natural language),
-and does not need to look into the actual internal implementation.
-This way, we often can keep various changes only local to the component,
-and replace one component easily with another one with similar interfaces.
-Despite abstraction layers are highly exercised in building complex
-system software, it has not been adapted into verification of
-those system software. We lack a framework that can allow us to discompose
-a complex system software into various small components across multiple
-abstraction layers, prove each part of the code in their most appropriate abstraction
-layers, formally compose the verified layers into bigger layer component with formal
-public interface such that we never need to look into the internal implementation of the layer,
-and makes it easy to replace one plugin with another component that has the same
-interface and also satisfies the same linking invariants.
-
-In this thesis, I present a novel compositional  framework that successfully
-tackles all of the above challenges in a unified way. The framework,
-which is implemented fully in Coq proof assistant, allows
-us to build hierarchy of certified abstraction layers that can be horizontally
-and vertically composed. It also provides a variant of C and assembly language
-that can be used for system implementation, the rich Coq logical language
-for specifying the behaviors of the programs, and a certified compiler that can compile
-the C code and proofs into equivalent assembly versions that can be formally linked
-with the ones obtained directly from assembly. It also contains powerful
-Coq tactic library that can be used to automate many aspect of the proofs.
-This framework is illustrated in
-detail in Chapter \ref{chapter:framework} and Chapter \ref{chapter:automation}.
-Under our framework, building a new certified kernel is the matter of
-composing a collection of certified layers. The framework has been used to
-construct a practical operating system kernel with rich features like virtual
-memory, process management, hardware virtualization, {\it etc}, which is
-presented in Chapter \ref{chapter:sequential}.
-}
-
 To experiment with the effectiveness of our automation engine, 
 we have successfully verified a practical single-core
 operating system kernel with rich features like virtual
@@ -149,59 +127,24 @@ memory, process management, hardware virtualization, {\it etc}.
 The proof is achieved semi-automatically with our automation
 engine implemented in Coq proof assistant and is detailed
 in Chapter \ref{chapter:sequential}.
-
-\ignore{
-In a monolithic kernel, device drivers
-form the majority of the code base; 70\% of the Linux 2.4.1 kernel are
-device drivers~\cite{Chou:2001}. Furthermore, such drivers are found
-to be the major source of crashes in the Linux and Windows operating
-systems~\cite{Chou:2001,Ball:2006,Ganapathi:2006}. While recent
-efforts on seL4~\cite{klein14} and CertiKOS~\cite{dscal15} have
-demonstrated the feasibility of building formally verified OS kernels,
-it is unclear how to extend their work to verify the functional
-correctness of device drivers. In CertiKOS~\cite{dscal15}, drivers are
-unverified, and it is not obvious how to extend their framework to
-model devices and interrupts. In a microkernel like
-seL4~\cite{klein14}, device drivers are implemented in user space,
-and, though its proofs guarantee driver isolation, it does not
-eliminate bugs in its user-level drivers.
-% The Verisoft team~\cite{verisoft07} has done a large body of work
-% aiming to verify an OS kernel with device drivers
-% \cite{Alkassar:OSVE09,Alkassar:VSTTE08-225,Alkassar:VSTTE2010-71},
-% but their drivers are verified completely at the assembly level.
-% Furthermore, they put many restrictions on the devices they can
-% verify, many of which are not satisfied by a large number of
-% existing devices.
 }
 
-\section{Reasoning about Devices and Interrupts}
+\paragraph{Proof Automation}
+As the automation engine guarantees the memory isolation and the invariant
+preservation, we can take these as given while we perform the functional
+correctness proof. Further more, the main complex functional correctness
+reasoning can now be performed on logical abstract states with logical
+primitives. Based on this, we have developed a collection of strong
+automation tactic libraries that can be used to automate the
+proof for varieties of C source programs.
 
-Though we find our automation engine to be particularly suitable for verifying
-complex low-level system software, there are certain common aspects that
-require our special attention. Device drivers are one of them.
-In practical system software, device drivers often form a very large component
-of the entire code base; 70\% of the Linux 2.4.1 kernel is
-device drivers~\cite{Chou:2001}.
-Furthermore, such drivers are found
-to be the major source of crashes~\cite{Chou:2001,Ball:2006,Ganapathi:2006}.
-On the other hand, it is not obvious how to extend our automation engine
-to effectively support verification of device drivers.
-A major challenge in driver verification is the interrupt: a non-local
-jump to some driver code, triggered by a device. 
-\ignore{When device drivers
-are implemented inside the kernel (for better performance), the kernel
-should be interruptible; otherwise, it can lead to an unacceptable
-interrupt processing latency. }
-Reasoning about interruptible code is
-particularly challenging since every fine-grained processor step
-could contain a non-local jump, and, upon return, the machine state
-could be substantially changed. Even worse, it is not clear how such
-reasoning should be done at the C level, which is completely
-interrupt-unaware. Existing work either assumes that interrupts are
-turned off inside the kernel~\cite{dscal15,verisoft07} or polls the
-interrupts at a few carefully chosen interrupt points~\cite{klein14}.
+\paragraph{Devices and Interrupts}
 
-Furthermore, interrupt hardware is not static, but is configured by
+In addition to the main challenge brought by the device interrupt,
+verification of an interruptible system software with device
+drivers also faces the following challenges.
+
+{\em interrupt hardware is not static.} It is configured by
 software. In order to verify any interesting device drivers (serial,
 disk, {\it etc}.), we first need to model the interrupt controller
 devices (e.g., LAPIC~\cite{mps97}, I/O APIC~\cite{ioapicd96}), and
@@ -212,9 +155,6 @@ interrupt controllers to mask/unmask particular interrupt lines.
 These issues have been overlooked in past work, where 
 interrupt controllers are assumed to be properly initialized and
 their drivers are correctly implemented~\cite{Alkassar:VSTTE08-225}.
-
-Finally, verifying an interruptible system software with device
-drivers also faces the following challenges.
 
 {\em Devices and CPU run in parallel.} Thus, the executions of CPU
 instructions and device transitions can interleave arbitrarily. Code
@@ -293,19 +233,14 @@ As a result, we have built an effective system that systematically enforces the
 isolation among different system modules, which is important
 for the scalability of any verification effort and critical for reasoning
 about interruptible code. 
+\ignore{
 We have successfully used these techniques to build the world's first fully verified
 interruptible OS kernel with device drivers.
 The details are presented in Chapter \ref{chapter:driver}.
+}
 
-\section{Reasoning about Concurrent Programs}
+\paragraph{Reasoning about Concurrent Programs}
 
-Last not the least, many system software run on multiple CPUs with
-multiple concurrent threads.   
-Through our work on device drivers and interrupts, even though
-we are able to reason about some limited form of concurrency between the kernel and
-devices, efficient reasoning of arbitrary concurrent executions among various
-interdependent components in a complex low-level system is considered
-intractable by some researchers~\cite{vontessin13,peters15}. 
 In concurrent programs, the accesses to the shared states are protected, either by
 locks or via lock-free algorithms. On the other hand, in the developers' mind, these accesses
 are considered ``atomic'', and this atomicity needs to be reflected in any good specifications.
@@ -332,39 +267,11 @@ states are protected, e.g., the lock is already held, such that we no longer nee
 during the code verification. The reasoning of interleaved executions is done as a separate next step,
 again at a completely logical level.
 This allows us to avoid any complexities coming from the concurrency into our automation engine,
-and effectively reuse all the
-verification techniques we have developed so far to verify each concurrent program, and effectively
+and effectively reuse all the existing
+verification techniques to verify each concurrent program, and effectively
 combine the reasoning into global properties on the combined concurrent programs.
-This line of work is presented in Chapter \ref{chapter:concurrent}.
-
 \ignore{
-In order to reason about concurrent programs effectively, we first need to write
-effective specifications. For example, for an operation to a concurrent object whose
-access is protected by a lock, even though there can be many interleaved executions
-in the middle of the operation, the operation is considered ``atomic'', and this
-information should be reflected in a good abstract specification, i.e.,
-the specification should also be atomic. The reasoning framework should also support
-local reasoning of concurrent programs, e.g., we should be able to reason about
-each thread locally by making appropriate assumptions on its partnering threads,
-and later merge all the proofs together to obtain a properly about the entire
-concurrent program when they all gets executed together. It is also important
-that the framework is able to prove that each of the system calls eventually returns,
-which is dependent both on the progress and behavior of current and other programs
-running on the machine.
-
-We have further extended our layered framework to support the certified
-concurrent abstraction layers. We have a very effective way of representing
-states shared among processes running on other CPUs, and enforcing invariants on
-the current process, and assumptions on the other processes. This way, it allows
-us to formally verify the code running on each processes separately, and later
-link the code and proofs together when they satisfy each other assumptions,
-to obtain global properties on entire system when the processes are run in parallel.
-Using this framework,
-we have successfully verified common spinlock implementations with effective
-atomic specifications for their lock acquire and release operations, and have further utilized
-the verified locks to build other verified concurrent components. 
-This led us, to the best of our knowledge, the first fully verified general-purpose
-concurrent OS kernel with fine-grained locking.
+This line of work is presented in Chapter \ref{chapter:concurrent}.
 }
 
 \section{Our Contributions}
@@ -373,9 +280,9 @@ This dissertation makes the following new contributions:
 \begin{itemize}
 \item We present a novel, compositional, and powerful automation engine
 for verifying C source code against their specifications. Unlike traditional
-verification approaches for verifying C programs mixing the proof of isolation
+verification approaches for verifying C programs mixing the proof of memory isolation
 and preservation of invariants into the reasoning of functional correctness,
-our automation engine takes the isolation and invariants as given, and provide
+our automation engine takes the memory isolation and invariants as given, and provide
 separate mechanisms to guarantee isolation and prove the invariants.
 This allows us to provide very strong automation support focusing solely on
 proving the functional correctness.
@@ -385,43 +292,6 @@ practical feature-rich certified OS kernels, which runs
 on stock x86 hardware and doubles as a hypervisor and boots a version of Linux as the guest.
 We managed to achieve the full specification and verification of the kernel within
 2 person-years.
-
-\ignore{
-\item We present the first language-based framework for systematically
-building hierarchy of certified abstraction layers used widely in the system
-community. Each certified layer interface not only specifies precise functionality
-of underlying implementation, but also clear assumptions about its client context.
-The framework allows us to effectively decompose otherwise complex
-artifacts into many different abstraction layers, and provides system level support
-for formally specifying, programming, and verifying the layer components,
-and more importantly, compose the components into a bigger abstraction layers.
-
-\item In the framework, we provide both a variant of C language (ClightX),
-and an x86 assembly language, and a modified version of CompCert verified
-compiler that can compile the code and proofs regarding ClightX into
-the equivalent ones in assembly. We have implemented (in Coq) strong
-automation tactics that can be used to semi-automatically prove the
-ClightX code against their specifications, and tactics for proving refinement
-properties across various proof patterns.
-
-\item Using these new tools, we have successfully constructed a
-practical feature-rich certified OS kernels with virtual memory,
-thread/process management, hardware assisted virtualization,
-and trap handlers. It runs on stock x86 machines
-and could also double as a hypervisor and boot a version of Linux as guest.
-The certified kernel is built through 35 logical
-abstraction layers, turning
-an otherwise prohibitive verification task into many simple
-and easily automatable sub-tasks.
-The certified
-kernel provides the actual assembly implementation running on the
-actual hardware, abstract high level specifications of the kernel,
-and machine checkable proof stating that for every kernel or user
-program $P$, any properly of $P$ over the kernel specification
-is preserved when running the $P$ linked with the kernel assembly
-implementation.  The entire specification and verification
-effort took less than 2 person years.
-}
 
 \item We have extended the engine with a novel way of representing
 devices and drivers, to effectively reason about system software
@@ -435,7 +305,6 @@ Instead of mixing the device drivers
   systematically enforcing the isolation among different ``devices''
   and the rest of the kernel.
 
-%%%%%
 \item We present a novel abstraction-layer-based approach for
   expressing interrupts, which enables us to build certified
   {\em interruptible} system software with device drivers. Our formalization of
@@ -444,7 +313,6 @@ Instead of mixing the device drivers
   interruptible code. We prove that the two interrupt models are
   contextually equivalent.
 
-%%%%%
 \item As a case study, we present, to the best of our knowledge, the first verified
   interruptible OS kernel and device drivers that come with
   machine-checkable proofs.  The implementation, modeling, specification, and
@@ -460,45 +328,9 @@ existing verification techniques to verify concurrent programs, assuming as if
 they run sequentially, and move all the reasoning of interleaved executions
 to a separate logical reasoning framework.  
 Using this technique, we have successfully extended the kernel further
-into certified concurrent OS kernel with fine-grained locking.
+into the first fully verified concurrent OS kernel with fine-grained locking.
   
- \ignore{
-\item We have developed an effective event-based framework for representing
-shared states, and further extended existing framework into an architecture
-for building certified concurrent OS kernels. The framework utilizes contextual
-refinement over the concurrent environmental contexts as the unifying formalism
-for composing various concurrent objects at different abstraction levels. 
-The environmental context allows us to make proper assumptions over
-other concurrent processes, and enables us to reuse majority
-of standard verification techniques we have developed for verifying sequential programs.
-
-\item Using the new framework, we have successfully developed fully certified
-concurrent OS kernel with fine grained locking. The concurrent kernel
-consists of 6,500 lines of C and assembly code, runs on stock x86 multicore machines,
-and doubles as a hypervisor and boots multiple instances of Linux as guest on different
-CPUs. To the best of our knowledge, this is the first fully verified general-purpose concurrent
-OS kernel with fine-grained locking.
-}
 \end{itemize}
-
-%The rest of this thesis is organized as follows.
-%Chapter~\ref{chapter:framework} presents our abstraction-layer-based verification
-%technology using a concrete example, while
-%Chapter~\ref{chapter:automation} details the challenges and solutions to
-%our automation engine for verifying C programs.
-%In Chapter \ref{chapter:sequential}, we present the concrete Coq
-%implementations of the mCertiKOS verified
-%kernel using the techniques presented in the previous chapters.
-%The framework is further extended in Chapter \ref{chapter:driver}
-%to support modular reasoning of device drivers and interrupts.
-%A modular framework that can further support shared-memory concurrency
-%with fine-grained locking is presented in Chapter \ref{chapter:concurrent}.
-%Then, the limitations of various frameworks are discussed in
-%Chapter \ref{chapter:limitation}, and we discuss various important
-%related works in Chapter \ref{chapter:related}, and finally conclude
-%in Chapter \ref{chapter:conclusion}.
-%
-%\paragraph{My Contributions}
 
 \section{Acknowledgment of the Collaborators}
 
