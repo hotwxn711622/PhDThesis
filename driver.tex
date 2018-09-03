@@ -292,10 +292,10 @@ transition of a CPU is shown in Fig.~\ref{fig:interrupt-cpu}.
 
 	\inferrule{
 		\rho[\textsf{EFLAGS}.\textsf{if}] = \textsf{Enabled} \\
-       		d' = d[\textsf{isr} \leftarrow \textsf{true}] \\
-		\textsf{tfs'} = \texttt{save\_context}(d'[\textsf{tfs}], \rho)\\\\
+       		d' = d[\textsf{isr} \leftarrow \textsf{true}] \\\\
+		\textsf{tfs'} = \texttt{save\_context}(d'[\textsf{tfs}], \rho)\\
 		d'' = d'[\textsf{tfs} \leftarrow \textsf{tfs'}] \\
-                		\textsf{IDT}[n] = p \\
+                		\textsf{IDT}[n] = p \\\\
 		\rho' = \rho[\textsf{EIP} \leftarrow p][\textsf{EFLAGS}.\textsf{if} \leftarrow \textsf{Disabled}]
 	}{
 	\texttt{intr}_{\textsf{CPU}} (d, \rho, \textsf{IRQ}~n) \defeq (d'', \rho') 
@@ -378,8 +378,8 @@ and \textsf{Disabled} respectively.
 \multicolumn{2}{l}{\textsc{DisableIntr:} ~ \text{Disable with unhandled interrupts}} \\[1ex]
 & \inferrule{
 		(e,\ell'_i) = \textsf{next} (\ell^{env}, \ell_i) \\	
-		s' = \delta^{\textsf{env}} (s, e) \\\\
-		s'.irq = \textsf{true} \\
+		s' = \delta^{\textsf{env}} (s, e) \\
+		s'.irq = \textsf{true} \\\\
 		(s'', \ell_i'') = \texttt{intr\_handler} (s', \ell'_i, \ell^{env}) \\
 		(s''', \ell_i''') = \texttt{intr\_disable} (s'', \ell''_i, \ell^{env}) 
 	}{
@@ -819,8 +819,7 @@ can indeed be made transparent to the CPU and the IC.
 \end{small}
 	\end{center}
 	\caption{Interrupt transition for the whole system, in the case when an
-	interrupt is triggered by the device $D$ on interrupt line number $N_D$. 
-		}
+	interrupt is triggered by the device $D$ on interrupt line number $N_D$}
 	\label{fig:int-whole-system}
 \end{figure}
 
@@ -906,7 +905,7 @@ all the kernel states in the global system state $s$, then
 	}\end{array}\]
 	\end{center}
 	\caption{Interrupt transition for the whole system when
-          nested interrupts are allowed.}
+          nested interrupts are allowed}
 	\label{fig:int-whole-system-nested}
 \end{figure}
 
@@ -915,7 +914,7 @@ all the kernel states in the global system state $s$, then
 	\begin{center}
 		\includegraphics[width=0.95\textwidth]{figs/interrupt_nest}
 	\end{center}
-	\caption{The contextual refinement between interrupt models with nested interrupts.}
+	\caption{The contextual refinement between interrupt models with nested interrupts}
 	\label{fig:intr_enable_nested}
 \end{figure}
 

@@ -7,8 +7,7 @@ void mem_init()
 
     // compute and set nps
     nps = 0;
-    while(i < size)
-    {
+    while(i < size) {
         s = get_mms(i);
         l = get_mml(i);
         maxs = (s + l) / PAGESIZE + 1;
@@ -20,17 +19,14 @@ void mem_init()
 
     // initilize allocation table
     i = 0;
-    while(i < nps)
-    {
+    while(i < nps) {
         if(i < MEMLOW || i >= MEMHIGH)
             set_norm(i, 1);
-        else
-        {
+        else {
             j = 0;
             flag = 0;
             isnorm = 0;
-            while(j < size && flag == 0)
-            {
+            while(j < size && flag == 0) {
                 s = get_mms(j);
                 l = get_mml(j);
                 isnorm = is_usable(j);

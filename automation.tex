@@ -52,12 +52,16 @@ we prove that the code is a simulation of its low-level specification.
 While this is very different from traditional Hoare logic approach, it links
 nicely with the downward simulation we prove for the {\it refinement proof}
 and we turn the entire downward simulation in the end into a final upward simulation
-for the contextual refinement. Another distinctness of our approach is that
-we handle memory isolation through the data abstraction by proving contextual
-refinement between the new overlay abstract states and concrete in-memory
-data at underlay. Thus, in most cases, C program verification only reasons
-about the data in the form of abstract states, thus do not need any heavy
-machinery, e.g., separation logic, to handle the isolation.
+for the contextual refinement. 
+
+With the certified abstraction layers, we manage to systematically guarantee
+memory isolation through abstract states and primitives, and the invariant preservation
+by enforcing invariants on the abstract states that are preserved by the primitives.
+In addition, we can perform the complex functional correctness logic at the
+pure logical level with the abstract states and primitives.
+In this chapter, we show how we develop a collection of strong automation tactic
+libraries that can efficiently prove the downward simulation from the low-level
+specifications to their implementations.
 
 \begin{figure}
 \lstinputlisting [language = Coq] {src/cons_buf_code_lemma.v}
@@ -106,12 +110,6 @@ fails, we invoke the test version which does not fail and leave some intermediat
 state that prevented the main tactic to proceed, which can be used to determine
 the source of errors much easier.
 
-The automation library is exercised extensively by many (undergraduate and graduate)
-students and (postdoctoral) researchers in our group to prove thousands of
-lines of C code in different versions of our OS kernels. Some of them have few or no
-experiences in the Coq proof
-assistant, yet they picked up the library and started to perform code verification
-reasonably quickly after they obtained some basic knowledge of Coq.
 
 \paragraph{Sound}
 Coq is sound, given its underlying core is sound, which is reviewed and exercised
@@ -530,6 +528,33 @@ and discharge the goals separately with the \textsf{cauto} tactic.
 The console buffer code does not contain any loop as it only contains simple
 getter and setter methods. Examples on verification of C functions with loops and nested
 loops are covered in Chapter \ref{chapter:sequential}.
+
+\section{Evaluation}
+
+The automation library is used extensively to prove many
+lines of C code in various verified system software,
+e.g., the verified sequential OS kernel, the verified
+interruptible kernel with device drivers, the verified
+concurrent OS kernel with fine-grained locking,
+the verified kernel with real-time support, the verified filesystem, {\it etc}.
+
+Within those projects, the library is exercised by many (undergraduate and graduate)
+students and (postdoctoral) researchers in our group.
+Some of them have few or no
+experiences in the Coq proof
+assistant, yet they picked up the library and started to perform code verification
+reasonably quickly after they obtained some basic knowledge of Coq.
+
+To give some statistics, it took about 30,000 lines of Coq code to verify
+the 3,500 lines of C code in the interruptible kernel, and about
+52,000 lines of Coq code for the 6,500 lines of C code in the concurrent kernel.
+The ratio between the number of lines of proof script and the implementation
+may seem a bit high, but it includes all the intermediate specifications and lemmas.
+And a relatively large number of proof scripts are dedicated to proving some
+outliers with some non-trivial nested loops and logics.
+In general, the functions in various kernel components are reasonably simple and
+can be automated completely.
+
 
 \section{Verification of LAsm functions}
 We have also developed an automation library to provide some

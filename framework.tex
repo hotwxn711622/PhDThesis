@@ -1,11 +1,10 @@
-
 The main novel idea of our automation engine design is to allow it to solely focus on verification
-of functional correctness properties making all good assumptions about other aspects,
-e.g., isolation, invariants, interrupts, concurrency, {\it etc}, as given, and provide
+of functional correctness properties taking other aspects,
+e.g., memory isolation, invariants, interrupts, concurrency, {\it etc}, as given, and provide
 a separate systematic framework to handle each of the constructions independent from the functional correctness proof.
 We achieve this separation via the technique of \emph{certified abstraction layers}.
-In this section, we give a detailed overview of our abstraction-layer-based
-approach and we illustrate our actual automation engine in Chapter \ref{chapter:automation}.
+In this section, we give a detailed overview on the development of certified abstraction layers
+with a running example.
 
 As in any other system verification, we associate every code module (a piece of code,
 or normally, a function)
