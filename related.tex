@@ -36,7 +36,7 @@ to reason about different kinds of properties with various code annotations.
 On the other hand, we provide automation libraries that assist reasoning on various common properties at the logical level. 
 
 There has been a large collection of program
-logics~\cite{ohearn:concur04,brookes:concur04,feng07:sagl,vafeiadis:marriage,LRG,verifast,gotsman13,CAP2010,Turon13popl,Turon13icfp,nanevski13,nanevski14,sergey15,sergey15pldi,pinto14,iris15,civl15,pinto16,xu16}
+logics~\cite{ohearn:concur04,brookes:concur04,feng07:sagl,vafeiadis:marriage,LRG,verifast,gotsman13,Turon13popl,Turon13icfp,nanevski13,nanevski14,sergey15,sergey15pldi,pinto14,iris15,civl15,pinto16,xu16}
 developed to support modular reasoning of shared-memory concurrency. 
 Most of these follow Hoare-style logics and
 do not prove the strong contextual simulation properties as our automation engine,
@@ -44,6 +44,24 @@ and very few of them can reason about progress properties, or connected to verif
 On the other hand, many of these logics support advanced language features,
 which will be suitable for verifying specific concurrent objects
 within our automation engine.
+
+The Concurrent Abstract Predicates (CAP) \cite{CAP2010} provides us with the ability
+to perform disjoint reasoning about threads operating on shared states.
+They utilize separation logic with permissions and allow us to abstractly
+specify the programs disjointly using the concurrent abstract predicates,
+and provide means to verify the implementation against the specification.
+In contrast, the shared states in our automation engine are hidden and specified
+with an explicit list of observable I/O events, where we utilize the environmental
+context to make assumptions on the external environment when we perform local reasoning.
+We use contextual refinement as the unified mechanism, where we verify
+the concurrent implementation against their ``sequential'' specification
+and perform all reasoning
+of concurrent executions in a separate logical framework.
+This way, we are able to provide strong automation support for code verification
+and expose logical abstract specification to the upper layers.
+With the integration of verified compiler, we are also able to transform the
+proof down to the actual assembly code running on the machine.
+
 
 \section{OS Kernel Verification}
 

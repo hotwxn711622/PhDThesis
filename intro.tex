@@ -274,9 +274,59 @@ combine the reasoning into global properties on the combined concurrent programs
 This line of work is presented in Chapter \ref{chapter:concurrent}.
 }
 
-\section{Our Contributions}
+\section{Key Contributions}
 
-This dissertation makes the following new contributions:
+\begin{itemize}
+\item To show the effectiveness of our automation engine, we have
+successfully developed a fully verified
+practical feature-rich certified OS kernel, which runs
+on stock x86 hardware and doubles as a hypervisor and boots a version of Linux as the guest.
+We managed to achieve the full specification and verification of the kernel within
+2 person-years.
+
+\item With the support of devices and interrupts, 
+we have developed, to the best of our knowledge, the world's first verified
+interruptible OS kernel with device drivers that come with
+  machine-checkable proofs. This work is built on top of the verified kernel above
+  and entire verification effort took less than one additional year.
+  
+\item With the extension to support concurrency, we have
+successfully extended the kernel further
+into the world's first fully verified concurrent OS kernel with fine-grained locking.
+The entire verification effort took two additional person-years.
+
+\item In all verified systems, the implementation, modeling, specification, and
+  proofs are all done in a unified framework (realized in the Coq
+  proof assistant~\cite{coq}), yet the machine-checkable proofs verify the
+  correctness of the assembly code that can run on the actual
+  hardware.
+  
+\end{itemize}
+
+\section{Contributions by Collaborators}
+
+The work described in this thesis is based on joint work with various members
+in the CertiKOS project.\footnote{http://flint.cs.yale.edu/certikos/}
+The author collaborated with Ronghui Gu on developing the sequential certified abstraction layers
+(presented in Chapter \ref{chapter:framework}) and the fully verified
+sequential OS kernel (detailed in Chapter \ref{chapter:sequential}), where Ronghui's focus was on the refinement proof
+while the author focused on the code verification.
+The automation
+engine for proving the C source programs (described in Chapter \ref{chapter:automation})
+are developed solely by the author, which is particularly suitable for the
+layer-based methodology and is the critical component of the framework.
+The work on the framework to reason about device drivers and interrupts
+(detailed in Chapter \ref{chapter:driver}) are also contributed
+by Hao Chen, who managed to develop all the device models and performed the code verification
+while the author focused on the refinement proof, in particular, developing the abstract interrupt model
+that is suitable to reason about interruptible code.
+The author also worked together with Ronghui Gu and Jieung Kim on the development of
+concurrent certified abstraction layers and the verified concurrent OS kernel
+(illustrated in Chapter \ref{chapter:concurrent}).
+
+
+\section{Summary of My Contributions}
+
 \begin{itemize}
 \item We present a novel, compositional, and powerful automation engine
 for verifying C source code against their specifications. Unlike traditional
@@ -286,12 +336,7 @@ our automation engine takes the memory isolation and invariants as given, and pr
 separate mechanisms to guarantee isolation and prove the invariants.
 This allows us to provide very strong automation support focusing solely on
 proving the functional correctness.
-To show the effectiveness of our approach, using the new tools, we have
-successfully constructed a fully verified
-practical feature-rich certified OS kernels, which runs
-on stock x86 hardware and doubles as a hypervisor and boots a version of Linux as the guest.
-We managed to achieve the full specification and verification of the kernel within
-2 person-years.
+
 
 \item We have extended the engine with a novel way of representing
 devices and drivers, to effectively reason about system software
@@ -312,14 +357,6 @@ Instead of mixing the device drivers
   abstract model of interrupts which is suitable for reasoning about
   interruptible code. We prove that the two interrupt models are
   contextually equivalent.
-
-\item As a case study, we present, to the best of our knowledge, the first verified
-  interruptible OS kernel and device drivers that come with
-  machine-checkable proofs.  The implementation, modeling, specification, and
-  proofs are all done in a unified framework (realized in the Coq
-  proof assistant~\cite{coq}), yet the machine-checkable proofs verify the
-  correctness of the assembly code that can run on the actual
-  hardware.
   
 \item We have further extended our engine with an effective way of representing
 shared states accessed by concurrent programs and making assumptions
@@ -327,26 +364,17 @@ on other concurrent programs. This allows us to reuse all of the
 existing verification techniques to verify concurrent programs, assuming as if
 they run sequentially, and move all the reasoning of interleaved executions
 to a separate logical reasoning framework.  
-Using this technique, we have successfully extended the kernel further
-into the first fully verified concurrent OS kernel with fine-grained locking.
+
   
 \end{itemize}
 
-\section{Acknowledgment of the Collaborators}
+\section{Acknowledgment}
 
-The work described in this thesis is based on joint work with various members
-in the CertiKOS project.\footnote{http://flint.cs.yale.edu/certikos/}
-The author is one of the two critical contributors for developing the methodology
-on performing large-scale verification by building stacks of certified abstraction layers
-using two common patterns, presented in Chapter \ref{chapter:framework}. The automation
-engine for proving the C source programs (described in Chapter \ref{chapter:automation})
-are developed solely by the author, which is particularly suitable for the
-layer-based methodology and is the critical component of the framework. 
-The author is also one of the two main contributors of the verified kernel (presented
-in Chapter \ref{chapter:sequential}), and the
-extension to the framework to reason about device drivers and interrupts
-(detailed in Chapter \ref{chapter:driver}), and a critical contributor
-of the log-based approach on reasoning
-concurrent programs (illustrated in Chapter \ref{chapter:concurrent}). 
-
+This research is based on work
+supported in part by DARPA grants FA8750-10-2-0254, FA8750-
+12-2-0293, FA8750-16-2-0274, and FA8750-15-C-0082 and NSF grants 1065451, 0915888, 1521523, and 1319671 and ONR Grant
+N00014-12-1-0478. 
+Any opinions, findings,
+and conclusions contained in this document are those of the authors
+and do not reflect the views of these agencies.
 
